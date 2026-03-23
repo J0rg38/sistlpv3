@@ -28,6 +28,10 @@ if ($tipo_cliente === 'NATURAL') {
     $razon_social = mb_strtoupper(trim($data['razon_social'] ?? ''));
 }
 
+$departamento = mb_strtoupper(trim($data['departamento_nombre'] ?? ''));
+$provincia = mb_strtoupper(trim($data['provincia_nombre'] ?? ''));
+$distrito = mb_strtoupper(trim($data['distrito_nombre'] ?? ''));
+
 if ($tipo_cliente === 'EMPRESA' && strlen($numero_documento) !== 11) {
     echo json_encode(['error' => 'El RUC debe tener exactamente 11 dígitos.']);
     exit;
@@ -43,12 +47,12 @@ try {
 
     $stmt = $pdo->prepare("
         INSERT INTO clientes 
-        (tipo_cliente, tipo_documento, numero_documento, razon_social, nombres, apellidos, direccion, telefono, email) 
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+        (tipo_cliente, tipo_documento, numero_documento, razon_social, nombres, apellidos, direccion, departamento, provincia, distrito, telefono, email) 
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     ");
     $stmt->execute([
         $tipo_cliente, $tipo_documento, $numero_documento, 
-        $razon_social, $nombres, $apellidos, $direccion, $telefono, $email
+        $razon_social, $nombres, $apellidos, $direccion, $departamento, $provincia, $distrito, $telefono, $email
     ]);
     
     $id = $pdo->lastInsertId();

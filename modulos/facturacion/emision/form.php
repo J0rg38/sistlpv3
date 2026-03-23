@@ -133,9 +133,9 @@ require_once '../../../includes/header.php';
             </div>
 
             <!-- Right Column: Condiciones -->
-            <div class="space-y-6">
+            <div class="space-y-6 flex flex-col">
                 <!-- 3. Condiciones -->
-                <div class="bg-white p-6 rounded-2xl border border-gray-200 shadow-sm h-full">
+                <div class="bg-white p-6 rounded-2xl border border-gray-200 shadow-sm">
                     <h3 class="text-lg font-bold text-gray-800 mb-4 border-b pb-2">Condiciones de Venta</h3>
                     <div class="space-y-4">
                         <div>
@@ -176,7 +176,56 @@ require_once '../../../includes/header.php';
                         </div>
                     </div>
                 </div>
-            </div>
+            </div> <!-- Ciere de Right Column -->
+
+            <!-- Detracción y Retención (Logicamente a ancho completo) -->
+            <template x-if="c.tipo === 'FACTURA'">
+                <div class="lg:col-span-3 bg-blue-50 p-6 rounded-2xl border border-blue-100 shadow-sm mt-2 mb-2">
+                    <h4 class="text-sm font-bold text-blue-900 border-b border-blue-200 pb-2 mb-4"><i class="fas fa-percent mr-2"></i>Operaciones SPOT y Retenciones SUNAT</h4>
+                        <div class="space-y-4">
+                            <div class="flex items-center space-x-6">
+                                <label class="flex items-center text-sm font-medium text-gray-700 cursor-pointer">
+                                    <input type="checkbox" x-model="c.tiene_detraccion" @change="toggleDetraccion()" class="mr-2 rounded text-blue-600 focus:ring-blue-500">
+                                    Sujeta a Detracción (Cat. 54)
+                                </label>
+                                <label class="flex items-center text-sm font-medium text-gray-700 cursor-pointer">
+                                    <input type="checkbox" x-model="c.tiene_retencion" @change="toggleRetencion()" class="mr-2 rounded text-blue-600 focus:ring-blue-500">
+                                    Sujeta a Retención (3%)
+                                </label>
+                            </div>
+
+                            <!-- Controles Detraccion -->
+                            <div x-show="c.tiene_detraccion" class="grid grid-cols-1 sm:grid-cols-3 gap-4 bg-white p-3 rounded-xl border border-blue-100">
+                                <div class="sm:col-span-2">
+                                    <label class="block text-xs font-semibold text-gray-700 mb-1">Catálogo 54 - Tipo Bien/Servicio</label>
+                                    <select x-model="c.codigo_detraccion" @change="updateDetraccionPercent()" class="block w-full rounded-md border-gray-300 px-3 py-1.5 text-sm focus:ring-blue-500 focus:border-blue-500">
+                                        <template x-for="dt in catDetraccion" :key="dt.id">
+                                            <option :value="dt.id" x-text="dt.nombre"></option>
+                                        </template>
+                                    </select>
+                                </div>
+                                <div>
+                                    <label class="block text-xs font-semibold text-gray-700 mb-1">Detracción Calculada</label>
+                                    <div class="flex space-x-2">
+                                        <div class="relative w-1/3">
+                                            <input type="number" x-model="c.porcentaje_detraccion" readonly class="block w-full rounded-md border-gray-300 bg-gray-100 px-2 py-1.5 text-sm text-center">
+                                            <span class="absolute right-2 top-1.5 text-xs text-gray-500">%</span>
+                                        </div>
+                                        <div class="w-2/3">
+                                            <input type="text" :value="formatCurrency(c.monto_detraccion)" readonly class="block w-full rounded-md border-gray-300 bg-green-50 text-green-700 font-bold px-2 py-1.5 text-sm text-right" title="Monto a detraer">
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Controles Retencion -->
+                            <div x-show="c.tiene_retencion" class="flex items-center justify-between bg-white px-4 py-3 rounded-xl border border-blue-100 text-sm">
+                                <span class="font-medium text-gray-700">Monto total a retener (3% del Total del Comprobante):</span>
+                                <span class="font-bold text-red-600 text-lg" x-text="formatCurrency(c.monto_retencion)"></span>
+                            </div>
+                        </div>
+                    </div>
+                </template>
             
             <!-- 4. Items -->
             <div class="lg:col-span-3 bg-white p-6 rounded-2xl border border-gray-200 shadow-sm">
@@ -261,6 +310,30 @@ require_once '../../../includes/header.php';
                             <span>Total General:</span>
                             <span x-text="formatCurrency(totales.total)"></span>
                         </div>
+                        <template x-if="c.tiene_detraccion">
+                            <div>
+                                <div class="flex justify-between text-sm text-blue-700 font-medium pt-2 border-t border-gray-200">
+                                    <span>(-) Detracción SPOT (<span x-text="c.porcentaje_detraccion"></span>%):</span>
+                                    <span x-text="'- ' + formatCurrency(c.monto_detraccion)"></span>
+                                </div>
+                                <div class="flex justify-between text-lg text-green-700 font-black pt-1">
+                                    <span>Neto a Pagar:</span>
+                                    <span x-text="formatCurrency(totales.total - c.monto_detraccion)"></span>
+                                </div>
+                            </div>
+                        </template>
+                        <template x-if="c.tiene_retencion">
+                            <div>
+                                <div class="flex justify-between text-sm text-red-600 font-medium pt-2 border-t border-gray-200">
+                                    <span>(-) Retención IGV (3%):</span>
+                                    <span x-text="'- ' + formatCurrency(c.monto_retencion)"></span>
+                                </div>
+                                <div class="flex justify-between text-lg text-green-700 font-black pt-1">
+                                    <span>Neto a Pagar:</span>
+                                    <span x-text="formatCurrency(totales.total - c.monto_retencion)"></span>
+                                </div>
+                            </div>
+                        </template>
                     </div>
                 </div>
 
@@ -293,14 +366,14 @@ require_once '../../../includes/header.php';
                         <div class="grid grid-cols-2 gap-4">
                             <div>
                                 <label class="block text-sm font-semibold text-gray-700 mb-1">Tipo Cliente</label>
-                                <select x-model="modalCliente.tipo_cliente" @change="modalCliente.tipo_documento = (modalCliente.tipo_cliente === 'EMPRESA' ? 'RUC' : 'DNI')" class="w-full rounded-lg border-gray-300 px-3 py-2 text-sm focus:ring-blue-500 focus:border-blue-500">
+                                <select x-model="modalCliente.tipo_cliente" @change="modalCliente.tipo_documento = (modalCliente.tipo_cliente === 'EMPRESA' ? 'RUC' : 'DNI')" class="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:ring-blue-500 focus:border-blue-500">
                                     <option value="NATURAL">Natural</option>
                                     <option value="EMPRESA">Empresa</option>
                                 </select>
                             </div>
                             <div>
                                 <label class="block text-sm font-semibold text-gray-700 mb-1">Tipo Doc.</label>
-                                <select x-model="modalCliente.tipo_documento" class="w-full rounded-lg border-gray-300 px-3 py-2 text-sm focus:ring-blue-500 focus:border-blue-500 bg-gray-100" tabindex="-1">
+                                <select x-model="modalCliente.tipo_documento" class="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:ring-blue-500 focus:border-blue-500 bg-gray-100" tabindex="-1">
                                     <option value="DNI">DNI</option>
                                     <option value="RUC">RUC</option>
                                     <option value="CE">CE</option>
@@ -309,7 +382,7 @@ require_once '../../../includes/header.php';
                             </div>
                             <div class="col-span-2">
                                 <label class="block text-sm font-semibold text-gray-700 mb-1">Número Documento <span class="text-red-500">*</span></label>
-                                <input type="text" x-model="modalCliente.numero_documento" required class="w-full rounded-lg border-gray-300 px-3 py-2 text-sm focus:ring-blue-500 focus:border-blue-500">
+                                <input type="text" x-model="modalCliente.numero_documento" required class="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:ring-blue-500 focus:border-blue-500" oninput="this.value = this.value.replace(/[^0-9]/g, '')">
                             </div>
 
                             <!-- Natural fields -->
@@ -317,11 +390,11 @@ require_once '../../../includes/header.php';
                                 <div class="col-span-2 grid grid-cols-2 gap-4">
                                     <div>
                                         <label class="block text-sm font-semibold text-gray-700 mb-1">Nombres <span class="text-red-500">*</span></label>
-                                        <input type="text" x-model="modalCliente.nombres" required class="w-full rounded-lg border-gray-300 px-3 py-2 text-sm focus:ring-blue-500 focus:border-blue-500">
+                                        <input type="text" x-model="modalCliente.nombres" x-bind:required="modalCliente.tipo_cliente === 'NATURAL'" class="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:ring-blue-500 focus:border-blue-500" oninput="this.value = this.value.toUpperCase()">
                                     </div>
                                     <div>
                                         <label class="block text-sm font-semibold text-gray-700 mb-1">Apellidos <span class="text-red-500">*</span></label>
-                                        <input type="text" x-model="modalCliente.apellidos" required class="w-full rounded-lg border-gray-300 px-3 py-2 text-sm focus:ring-blue-500 focus:border-blue-500">
+                                        <input type="text" x-model="modalCliente.apellidos" x-bind:required="modalCliente.tipo_cliente === 'NATURAL'" class="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:ring-blue-500 focus:border-blue-500" oninput="this.value = this.value.toUpperCase()">
                                     </div>
                                 </div>
                             </template>
@@ -330,13 +403,52 @@ require_once '../../../includes/header.php';
                             <template x-if="modalCliente.tipo_cliente === 'EMPRESA'">
                                 <div class="col-span-2">
                                     <label class="block text-sm font-semibold text-gray-700 mb-1">Razón Social <span class="text-red-500">*</span></label>
-                                    <input type="text" x-model="modalCliente.razon_social" required class="w-full rounded-lg border-gray-300 px-3 py-2 text-sm focus:ring-blue-500 focus:border-blue-500">
+                                    <input type="text" x-model="modalCliente.razon_social" x-bind:required="modalCliente.tipo_cliente === 'EMPRESA'" class="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:ring-blue-500 focus:border-blue-500" oninput="this.value = this.value.toUpperCase()">
                                 </div>
                             </template>
 
+                            <div class="col-span-1">
+                                <label class="block text-sm font-semibold text-gray-700 mb-1">Teléfono</label>
+                                <input type="text" x-model="modalCliente.telefono" class="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:ring-blue-500 focus:border-blue-500" oninput="this.value = this.value.replace(/[^0-9]/g, '')">
+                            </div>
+                            <div class="col-span-1">
+                                <label class="block text-sm font-semibold text-gray-700 mb-1">Email</label>
+                                <input type="email" x-model="modalCliente.email" class="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:ring-blue-500 focus:border-blue-500" oninput="this.value = this.value.toLowerCase()">
+                            </div>
+
+                            <div class="col-span-2 grid grid-cols-3 gap-4 border-t pt-4 mt-2">
+                                <div>
+                                    <label class="block text-sm font-semibold text-gray-700 mb-1">Departamento <span class="text-red-500">*</span></label>
+                                    <select x-model="modalCliente.departamento_id" @change="cargarProvincias()" required class="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:ring-blue-500 focus:border-blue-500 uppercase">
+                                        <option value="">SELECCIONE...</option>
+                                        <template x-for="d in departamentos" :key="d.id_ubigeo">
+                                            <option :value="d.id_ubigeo" x-text="d.id_ubigeo + ' - ' + d.nombre_ubigeo.toUpperCase()"></option>
+                                        </template>
+                                    </select>
+                                </div>
+                                <div>
+                                    <label class="block text-sm font-semibold text-gray-700 mb-1">Provincia <span class="text-red-500">*</span></label>
+                                    <select x-model="modalCliente.provincia_id" @change="cargarDistritos()" required :disabled="provincias.length === 0" class="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:ring-blue-500 focus:border-blue-500 disabled:bg-gray-100 disabled:cursor-not-allowed uppercase">
+                                        <option value="">SELECCIONE...</option>
+                                        <template x-for="p in provincias" :key="p.id_ubigeo">
+                                            <option :value="p.id_ubigeo" x-text="p.id_ubigeo + ' - ' + p.nombre_ubigeo.toUpperCase()"></option>
+                                        </template>
+                                    </select>
+                                </div>
+                                <div>
+                                    <label class="block text-sm font-semibold text-gray-700 mb-1">Distrito <span class="text-red-500">*</span></label>
+                                    <select x-model="modalCliente.distrito_id" @change="actualizarDistritoNombre()" required :disabled="distritos.length === 0" class="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:ring-blue-500 focus:border-blue-500 disabled:bg-gray-100 disabled:cursor-not-allowed uppercase">
+                                        <option value="">SELECCIONE...</option>
+                                        <template x-for="dt in distritos" :key="dt.id_ubigeo">
+                                            <option :value="dt.id_ubigeo" x-text="dt.id_ubigeo + ' - ' + dt.nombre_ubigeo.toUpperCase()"></option>
+                                        </template>
+                                    </select>
+                                </div>
+                            </div>
+                            
                             <div class="col-span-2">
-                                <label class="block text-sm font-semibold text-gray-700 mb-1">Dirección</label>
-                                <input type="text" x-model="modalCliente.direccion" class="w-full rounded-lg border-gray-300 px-3 py-2 text-sm focus:ring-blue-500 focus:border-blue-500">
+                                <label class="block text-sm font-semibold text-gray-700 mb-1">Dirección Completa <span class="text-red-500">*</span></label>
+                                <input type="text" x-model="modalCliente.direccion" required class="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:ring-blue-500 focus:border-blue-500" placeholder="Ej. AV. LARCO 123" oninput="this.value = this.value.toUpperCase()">
                             </div>
                         </div>
                         <div class="mt-5 sm:mt-6 sm:flex sm:flex-row-reverse border-t pt-4">
@@ -370,7 +482,14 @@ function emisionForm() {
             moneda: 'PEN',
             tipo_cambio: '',
             condicion_pago: 'CONTADO',
-            dias_credito: 0
+            dias_credito: 0,
+            tiene_detraccion: false,
+            codigo_detraccion: '037',
+            porcentaje_detraccion: 12.00,
+            monto_detraccion: 0.00,
+            tiene_retencion: false,
+            porcentaje_retencion: 3.00,
+            monto_retencion: 0.00
         },
         items: [
             { codigo: '', descripcion: '', um: 'NIU', cantidad: 1, precio: 0.00, descuento: 0.00, total: 0.00 }
@@ -388,6 +507,26 @@ function emisionForm() {
         isSearchingClient: false,
         showClienteModal: false,
         isSavingCliente: false,
+        modalCliente: {
+            tipo_cliente: 'NATURAL',
+            tipo_documento: 'DNI',
+            numero_documento: '',
+            nombres: '',
+            apellidos: '',
+            razon_social: '',
+            direccion: '',
+            telefono: '',
+            email: '',
+            departamento_id: '',
+            departamento_nombre: '',
+            provincia_id: '',
+            provincia_nombre: '',
+            distrito_id: '',
+            distrito_nombre: ''
+        },
+        departamentos: [],
+        provincias: [],
+        distritos: [],
         comprobanteRelacionado: {
             serie: '',
             correlativo: ''
@@ -410,6 +549,27 @@ function emisionForm() {
             {codigo: '03', descripcion: 'Penalidades/otros conceptos'},
             {codigo: '11', descripcion: 'Ajustes de operaciones de exportación'},
             {codigo: '12', descripcion: 'Ajustes afectos al IVAP'}
+        ],
+        catDetraccion: [
+            { id: '001', nombre: 'Azúcar (10%)', pct: 10 },
+            { id: '003', nombre: 'Alcohol etílico (10%)', pct: 10 },
+            { id: '004', nombre: 'Recursos hidrobiológicos (4%)', pct: 4 },
+            { id: '005', nombre: 'Maíz amarillo duro (4%)', pct: 4 },
+            { id: '007', nombre: 'Caña de azúcar (10%)', pct: 10 },
+            { id: '008', nombre: 'Madera (4%)', pct: 4 },
+            { id: '009', nombre: 'Arena y piedra (10%)', pct: 10 },
+            { id: '010', nombre: 'Residuos, subproductos... (15%)', pct: 15 },
+            { id: '012', nombre: 'Intermediación laboral (12%)', pct: 12 },
+            { id: '014', nombre: 'Carnes y despojos (4%)', pct: 4 },
+            { id: '019', nombre: 'Arrendamiento de bienes (12%)', pct: 12 },
+            { id: '020', nombre: 'Mantenimiento y reparación (12%)', pct: 12 },
+            { id: '021', nombre: 'Movimiento de carga (10%)', pct: 10 },
+            { id: '022', nombre: 'Otros servicios empresariales (12%)', pct: 12 },
+            { id: '024', nombre: 'Comisión mercantil (10%)', pct: 10 },
+            { id: '025', nombre: 'Fabricación de bienes por encargo (10%)', pct: 10 },
+            { id: '026', nombre: 'Servicio de transporte de personas (10%)', pct: 10 },
+            { id: '027', nombre: 'Servicio de Transporte de bienes (4%)', pct: 4 },
+            { id: '037', nombre: 'Demás servicios gravados con IGV (12%)', pct: 12 }
         ],
         modalCliente: {
             tipo_cliente: 'NATURAL',
@@ -519,6 +679,52 @@ function emisionForm() {
             }
         },
 
+        async cargarDepartamentos() {
+            try {
+                const res = await fetch('../../clientes/api_ubigeo.php?action=get_departamentos');
+                this.departamentos = await res.json();
+            } catch (e) {}
+        },
+        async cargarProvincias() {
+            this.provincias = [];
+            this.distritos = [];
+            this.modalCliente.provincia_id = '';
+            this.modalCliente.provincia_nombre = '';
+            this.modalCliente.distrito_id = '';
+            this.modalCliente.distrito_nombre = '';
+            
+            const dep = this.departamentos.find(d => d.id_ubigeo === this.modalCliente.departamento_id);
+            this.modalCliente.departamento_nombre = dep ? dep.nombre_ubigeo : '';
+
+            if(!this.modalCliente.departamento_id) return;
+            try {
+                const res = await fetch(`../../clientes/api_ubigeo.php?action=get_provincias&department_id=${this.modalCliente.departamento_id}`);
+                this.provincias = await res.json();
+            } catch(e) {}
+        },
+        async cargarDistritos() {
+            this.distritos = [];
+            this.modalCliente.distrito_id = '';
+            this.modalCliente.distrito_nombre = '';
+            
+            const prov = this.provincias.find(p => p.id_ubigeo === this.modalCliente.provincia_id);
+            this.modalCliente.provincia_nombre = prov ? prov.nombre_ubigeo : '';
+
+            if(!this.modalCliente.provincia_id) return;
+            try {
+                const res = await fetch(`../../clientes/api_ubigeo.php?action=get_distritos&province_id=${this.modalCliente.provincia_id}`);
+                this.distritos = await res.json();
+            } catch(e) {}
+        },
+        actualizarDistritoNombre() {
+            const dist = this.distritos.find(d => d.id_ubigeo === this.modalCliente.distrito_id);
+            this.modalCliente.distrito_nombre = dist ? dist.nombre_ubigeo : '';
+        },
+
+        init() {
+            this.cargarDepartamentos();
+        },
+
         async buscarComprobanteRelacionado() {
             if (!this.comprobanteRelacionado.serie || !this.comprobanteRelacionado.correlativo || !this.c.tipo) return;
             try {
@@ -612,6 +818,32 @@ function emisionForm() {
             this.recalcularTotales();
         },
 
+        toggleDetraccion() {
+            if (this.c.tiene_detraccion) {
+                this.c.tiene_retencion = false;
+                if (!this.c.codigo_detraccion) {
+                    this.c.codigo_detraccion = '037';
+                    this.c.porcentaje_detraccion = 12.00;
+                }
+                this.updateDetraccionPercent();
+            }
+            this.recalcularTotales();
+        },
+
+        toggleRetencion() {
+            if (this.c.tiene_retencion) {
+                this.c.tiene_detraccion = false;
+                this.c.porcentaje_retencion = 3.00;
+            }
+            this.recalcularTotales();
+        },
+
+        updateDetraccionPercent() {
+            let item = this.catDetraccion.find(x => x.id === this.c.codigo_detraccion);
+            if (item) this.c.porcentaje_detraccion = parseFloat(item.pct).toFixed(2);
+            this.recalcularTotales();
+        },
+
         recalcularTotales() {
             let sum = 0;
             this.items.forEach(i => sum += parseFloat(i.total || 0));
@@ -619,6 +851,18 @@ function emisionForm() {
             // Considerando IGV incluido en el total:
             this.totales.subtotal = sum / 1.18;
             this.totales.igv = sum - this.totales.subtotal;
+            
+            // Recalcular detracciones/retenciones sobre el total
+            if (this.c.tiene_detraccion) {
+                this.c.monto_detraccion = (this.totales.total * this.c.porcentaje_detraccion / 100).toFixed(2);
+            } else {
+                this.c.monto_detraccion = 0.00;
+            }
+            if (this.c.tiene_retencion) {
+                this.c.monto_retencion = (this.totales.total * this.c.porcentaje_retencion / 100).toFixed(2);
+            } else {
+                this.c.monto_retencion = 0.00;
+            }
         },
 
         formatCurrency(val) {

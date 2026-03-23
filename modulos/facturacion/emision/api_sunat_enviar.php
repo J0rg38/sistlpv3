@@ -10,6 +10,8 @@ use Greenter\Model\Sale\Invoice;
 use Greenter\Model\Sale\Note;
 use Greenter\Model\Sale\SaleDetail;
 use Greenter\Model\Sale\Legend;
+use Greenter\Model\Sale\Detraction;
+use Greenter\Model\Sale\Charge;
 use Greenter\Model\Sale\FormaPagos\FormaPagoContado;
 use Greenter\Model\Sale\FormaPagos\FormaPagoCredito;
 use Greenter\Model\Sale\Cuota;
@@ -115,6 +117,49 @@ try {
 
     $esNota = in_array($comprobante['tipo_comprobante'], ['NOTA_CREDITO', 'NOTA_DEBITO']);
 
+    // --- 3. Procesar Items (Extraer sumas sin descuento) ---
+    $greenItems = [];
+
+    foreach ($items as $it) {
+        $precio_unitario_igv = floatval($it['precio_unitario']);
+        $valor_unitario = $precio_unitario_igv / 1.18; 
+        $cantidad = floatval($it['cantidad']);
+        
+        $mtoValorVentaBruto = $valor_unitario * $cantidad;
+        $descuentoIgv = floatval($it['descuento']);
+        $descuentoBase = $descuentoIgv / 1.18;
+        
+        $mtoValorVentaNeto = $mtoValorVentaBruto - $descuentoBase;
+        $igvNeto = $mtoValorVentaNeto * 0.18;
+
+        $detail = (new SaleDetail())
+            ->setCodProducto($it['codigo'] ?: 'P001')
+            ->setUnidad($it['unidad_medida'] ?: 'NIU')
+            ->setCantidad($cantidad)
+            ->setDescripcion($it['descripcion'])
+            ->setMtoBaseIgv(round($mtoValorVentaNeto, 2))
+            ->setPorcentajeIgv(18.00)
+            ->setIgv(round($igvNeto, 2))
+            ->setTipAfeIgv('10') // Gravado - Operación Onerosa
+            ->setTotalImpuestos(round($igvNeto, 2))
+            ->setMtoValorVenta(round($mtoValorVentaNeto, 2))
+            ->setMtoValorUnitario(round($valor_unitario, 5))
+            ->setMtoPrecioUnitario(round(($mtoValorVentaNeto + $igvNeto) / $cantidad, 5));
+
+        if ($descuentoIgv > 0) {
+            $factor = round($descuentoBase / $mtoValorVentaBruto, 5);
+            $charge = (new Charge())
+                ->setCodTipo('00') // Descuento que afecta la Base Imponible
+                ->setMontoBase(round($mtoValorVentaBruto, 2))
+                ->setFactor($factor)
+                ->setMonto(round($descuentoBase, 2));
+            
+            $detail->setDescuentos([$charge]);
+        }
+
+        $greenItems[] = $detail;
+    }
+
     if ($esNota) {
         if (empty($comprobante['comprobante_relacionado_id'])) {
             throw new Exception("La nota requiere un comprobante de referencia válido.");
@@ -155,9 +200,11 @@ try {
         }
 
         // Invoice normal (Factura/Boleta)
+        $tipoOp = $comprobante['tiene_detraccion'] == 1 ? '1001' : '0101';
+        
         $invoice = (new Invoice())
             ->setUblVersion('2.1')
-            ->setTipoOperacion('0101') // Venta interna
+            ->setTipoOperacion($tipoOp)
             ->setTipoDoc($comprobante['codigo_tipo_documento'])
             ->setSerie($comprobante['serie'])
             ->setCorrelativo($comprobante['correlativo'])
@@ -176,40 +223,60 @@ try {
         if (!empty($cuotas)) {
             $invoice->setCuotas($cuotas);
         }
+
+        if ($comprobante['tiene_detraccion'] == 1) {
+            $montoDetraccionFinal = floatval($comprobante['monto_detraccion']);
+            if ($comprobante['moneda'] === 'USD') {
+                $tc = floatval($comprobante['tipo_cambio']);
+                $tc = $tc > 0 ? $tc : 1;
+                $montoDetraccionFinal = round($montoDetraccionFinal * $tc, 2);
+            }
+
+            $invoice->setDetraccion(
+                (new Detraction())
+                    ->setCodBienDetraccion($comprobante['codigo_detraccion'])
+                    ->setCodMedioPago('001') // Depósito en cuenta
+                    ->setCtaBanco(empty($config['empresa']['direccion']['cuenta_banco_nacion']) ? '00-000-000000' : $config['empresa']['direccion']['cuenta_banco_nacion'])
+                    ->setPercent(floatval($comprobante['porcentaje_detraccion']))
+                    ->setMount($montoDetraccionFinal)
+            );
+        }
     }
 
-    // Detalles
-    $greenItems = [];
-    foreach ($items as $it) {
-        $precio_unitario_igv = $it['precio_unitario'];
-        $valor_unitario = $precio_unitario_igv / 1.18; // El precio unit. viene de UI con IGV 
+    // Cargos y Descuentos Globales
+    $arrCargosDescuentos = [];
 
-        $detail = (new SaleDetail())
-            ->setCodProducto($it['codigo'] ?: 'P001')
-            ->setUnidad($it['unidad_medida'] ?: 'NIU')
-            ->setCantidad(floatval($it['cantidad']))
-            ->setDescripcion($it['descripcion'])
-            ->setMtoBaseIgv(floatval($it['importe_total'] / 1.18))
-            ->setPorcentajeIgv(18.00)
-            ->setIgv(floatval($it['igv']))
-            ->setTipAfeIgv('10') // Gravado - Operación Onerosa
-            ->setTotalImpuestos(floatval($it['igv']))
-            ->setMtoValorVenta(floatval($it['importe_total'] / 1.18))
-            ->setMtoValorUnitario(floatval($valor_unitario))
-            ->setMtoPrecioUnitario(floatval($precio_unitario_igv));
+    if (!$esNota && isset($comprobante['tiene_retencion']) && $comprobante['tiene_retencion'] == 1) {
+        $retencion = (new Charge())
+            ->setCodTipo('62') // Catálogo 53: Retención del IGV
+            ->setMontoBase(floatval($comprobante['total']))
+            ->setFactor(floatval($comprobante['porcentaje_retencion']) / 100)
+            ->setMonto(floatval($comprobante['monto_retencion']));
+        
+        $arrCargosDescuentos[] = $retencion;
+    }
 
-        $greenItems[] = $detail;
+    if (!empty($arrCargosDescuentos)) {
+        $invoice->setDescuentos($arrCargosDescuentos);
     }
 
     // Funcion utilitaria
     $textoMonto = NumerosEnLetras((float)$comprobante['total'], $comprobante['moneda']);
 
+    $legends = [
+        (new Legend())
+            ->setCode('1000') // Monto en letras
+            ->setValue($textoMonto)
+    ];
+
+    if (isset($comprobante['tiene_retencion']) && $comprobante['tiene_retencion'] == 1) {
+        $legends[] = (new Legend())
+            ->setCode('2006')
+            ->setValue('Operación sujeta a retención del IGV');
+    }
+
     $invoice->setDetails($greenItems)
-        ->setLegends([
-            (new Legend())
-                ->setCode('1000') // Monto en letras
-                ->setValue($textoMonto)
-        ]);
+        ->setLegends($legends);
 
     // Enviar a SUNAT
     $res = $see->send($invoice);

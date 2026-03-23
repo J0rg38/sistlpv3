@@ -38,6 +38,7 @@ return [
             'provincia' => $row['provincia'],
             'distrito' => $row['distrito'],
             'direccion' => $row['direccion'],
+            'cuenta_banco_nacion' => $row['cuenta_banco_nacion'] ?? ''
         ]
     ],
     'greenter' => [

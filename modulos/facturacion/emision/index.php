@@ -307,6 +307,19 @@ require_once '../../../includes/header.php';
                         </div>
                     </div>
 
+                    <!-- Operaciones SPOT / Retenciones -->
+                    <div x-show="data && (data.cabecera.tiene_detraccion == 1 || data.cabecera.tiene_retencion == 1)" class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div x-show="data && data.cabecera.tiene_detraccion == 1" class="bg-blue-50 rounded-xl p-4 border border-blue-100">
+                            <span class="block text-xs font-bold text-blue-600 uppercase tracking-wider mb-1"><i class="fas fa-percent mr-1"></i> Detracción Sujeta (<span x-text="data ? data.cabecera.porcentaje_detraccion : ''"></span>%)</span>
+                            <span class="block text-xl font-black text-blue-700 leading-none" x-text="data ? formatMoney(data.cabecera.monto_detraccion, data.cabecera.moneda) : ''"></span>
+                            <span class="block text-xs text-blue-500 mt-1">Catálogo 54: Código <span x-text="data ? data.cabecera.codigo_detraccion : ''"></span></span>
+                        </div>
+                        <div x-show="data && data.cabecera.tiene_retencion == 1" class="bg-red-50 rounded-xl p-4 border border-red-100">
+                            <span class="block text-xs font-bold text-red-600 uppercase tracking-wider mb-1"><i class="fas fa-hand-holding-usd mr-1"></i> Retención I.G.V. (<span x-text="data ? data.cabecera.porcentaje_retencion : ''"></span>%)</span>
+                            <span class="block text-xl font-black text-red-700 leading-none" x-text="data ? formatMoney(data.cabecera.monto_retencion, data.cabecera.moneda) : ''"></span>
+                        </div>
+                    </div>
+
                     <!-- Items Grid -->
                     <div>
                         <h4 class="text-xs font-bold text-gray-500 uppercase tracking-wider mb-3">Detalle de Ítems</h4>

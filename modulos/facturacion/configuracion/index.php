@@ -73,6 +73,13 @@ ob_start();
                                    class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm">
                         </div>
                     </div>
+
+                    <div class="mt-4 pt-4 border-t border-gray-100">
+                        <label class="block text-sm font-medium text-gray-700">Cuenta Banco de la Nación (Detracciones)</label>
+                        <input type="text" name="cuenta_banco_nacion" value="<?= htmlspecialchars($config['cuenta_banco_nacion'] ?? '') ?>" placeholder="Ej: 00-000-000000"
+                               class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm">
+                        <p class="text-xs text-gray-400 mt-1">Requerido solo si emitirás facturas sujetas a detracción SPOT.</p>
+                    </div>
                 </div>
 
                 <!-- Zona SUNAT y Archivos -->

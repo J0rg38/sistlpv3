@@ -119,15 +119,19 @@ $html = '
         <th width="15%" style="border-bottom: 1px solid #94a3b8;">TOTAL (' . $monedaSymbol . ')</th>
     </tr>';
 
+$totalDescuentosPdf = 0;
 foreach ($items as $it) {
     $precioConIgv = $it['precio_unitario'];
+    $montoLineBruto = $precioConIgv * $it['cantidad'];
+    $totalDescuentosPdf += (float)$it['descuento'];
+    
     $html .= '
     <tr style="color:#0f172a;">
         <td width="15%" style="border-right: 1px solid #e2e8f0; border-bottom: 1px solid #e2e8f0;">' . htmlspecialchars($it['codigo']) . '</td>
         <td width="45%" style="border-right: 1px solid #e2e8f0; border-bottom: 1px solid #e2e8f0; text-align:left;">' . htmlspecialchars($it['descripcion']) . '</td>
         <td width="10%" style="border-right: 1px solid #e2e8f0; border-bottom: 1px solid #e2e8f0;">' . number_format($it['cantidad'], 2) . '<br/><span style="font-size:7pt; color:#64748b;">' . htmlspecialchars($it['unidad_medida']) . '</span></td>
         <td width="15%" style="border-right: 1px solid #e2e8f0; border-bottom: 1px solid #e2e8f0; text-align:right;">' . number_format($precioConIgv, 4) . '</td>
-        <td width="15%" style="border-bottom: 1px solid #e2e8f0; text-align:right;">' . number_format($it['importe_total'], 2) . '</td>
+        <td width="15%" style="border-bottom: 1px solid #e2e8f0; text-align:right;">' . number_format($montoLineBruto, 2) . '</td>
     </tr>';
 }
 
@@ -137,7 +141,7 @@ $html .= '
 
 <table width="100%" cellpadding="5">
     <tr>
-        <td width="65%">';
+        <td width="60%">';
 
 if ($comp['condicion_pago'] === 'CREDITO') {
     $html .= '
@@ -148,7 +152,40 @@ if ($comp['condicion_pago'] === 'CREDITO') {
                     <td width="33%"><strong>Vencimiento:</strong> ' . $fechaVencimiento . '</td>
                     <td width="33%"><strong>Cuota:</strong> ' . $monedaSymbol . ' ' . number_format($comp['total'], 2) . '</td>
                 </tr>
-            </table><br><br>';
+            </table><br>';
+}
+
+// Calcular de antemano detracción real en moneda nacional
+$montoDetraccionReal = (float)$comp['monto_detraccion'];
+$simboloDetraccion = $monedaSymbol;
+$tcSolesMsg = '';
+if ($comp['tiene_detraccion'] == 1 && $comp['moneda'] === 'USD') {
+    $tc = (float)$comp['tipo_cambio'] > 0 ? (float)$comp['tipo_cambio'] : 1;
+    $montoDetraccionReal = round($montoDetraccionReal * $tc, 2);
+    $simboloDetraccion = 'S/';
+    $tcSolesMsg = ' (TC ' . number_format($tc, 3) . ')';
+}
+
+if ($comp['tiene_detraccion'] == 1) {
+    $html .= '
+            <table width="100%" cellpadding="5" style="border: 1px solid #bfdbfe; background-color:#eff6ff; border-radius: 5px;">
+                <tr><td colspan="3"><strong style="font-size:9pt; color:#1e3a8a;">OPERACIÓN SUJETA A DETRACCIÓN (' . number_format($comp['porcentaje_detraccion'], 0) . '%)</strong></td></tr>
+                <tr style="font-size:8.5pt; color:#1e40af;">
+                    <td width="33%"><strong>Cta. Banco de la Nación:</strong><br>' . htmlspecialchars($config['empresa']['direccion']['cuenta_banco_nacion'] ?? '') . '</td>
+                    <td width="33%"><strong>Catálogo 54:</strong> ' . htmlspecialchars($comp['codigo_detraccion']) . '</td>
+                    <td width="33%"><strong>Monto a Detraer' . $tcSolesMsg . ':</strong><br>' . $simboloDetraccion . ' ' . number_format($montoDetraccionReal, 2) . '</td>
+                </tr>
+            </table><br>';
+}
+
+if ($comp['tiene_retencion'] == 1) {
+    $html .= '
+            <table width="100%" cellpadding="5" style="border: 1px solid #fecaca; background-color:#fef2f2; border-radius: 5px;">
+                <tr><td><strong style="font-size:9pt; color:#991b1b;">OPERACIÓN SUJETA A RETENCIÓN DEL I.G.V. (3%)</strong></td></tr>
+                <tr style="font-size:8.5pt; color:#b91c1c;">
+                    <td>El comprobante está sujeto a retención. Monto retenido: <strong>' . $monedaSymbol . ' ' . number_format($comp['monto_retencion'], 2) . '</strong></td>
+                </tr>
+            </table><br>';
 }
 
 function NumerosEnLetras($monto, $moneda)
@@ -199,21 +236,57 @@ $html .= '
                 <strong>Observaciones:</strong> Emisión de comprobante generado mediante SisTLPv3 ERP.
             </div>
         </td>
-        <td width="5%"></td>
-        <td width="30%">
-            <table width="100%" cellpadding="6" style="border: 1px solid #cbd5e1; font-size:9pt; background-color:#ffffff;">
+        <td width="2%"></td>
+        <td width="38%">
+            <table width="100%" cellpadding="6" style="border: 1px solid #cbd5e1; font-size:9pt; background-color:#ffffff;">';
+
+if ($totalDescuentosPdf > 0) {
+    $html .= '
                 <tr>
-                    <td width="50%" align="right" style="color:#475569; font-weight:bold; border-bottom: 1px solid #e2e8f0;">OP. GRAVADA:</td>
-                    <td width="50%" align="right" style="border-bottom: 1px solid #e2e8f0;">' . $monedaSymbol . ' ' . number_format($comp['subtotal'], 2) . '</td>
+                    <td width="55%" align="right" style="color:#475569; font-weight:bold; border-bottom: 1px solid #e2e8f0;">(-) DESCUENTOS:</td>
+                    <td width="45%" align="right" style="border-bottom: 1px solid #e2e8f0;">' . $monedaSymbol . ' ' . number_format($totalDescuentosPdf, 2) . '</td>
+                </tr>';
+}
+
+$html .= '
+                <tr>
+                    <td width="55%" align="right" style="color:#475569; font-weight:bold; border-bottom: 1px solid #e2e8f0;">OP. GRAVADA:</td>
+                    <td width="45%" align="right" style="border-bottom: 1px solid #e2e8f0;">' . $monedaSymbol . ' ' . number_format($comp['subtotal'], 2) . '</td>
                 </tr>
                 <tr>
-                    <td width="50%" align="right" style="color:#475569; font-weight:bold; border-bottom: 1px solid #e2e8f0;">I.G.V. (18%):</td>
-                    <td width="50%" align="right" style="border-bottom: 1px solid #e2e8f0;">' . $monedaSymbol . ' ' . number_format($comp['igv'], 2) . '</td>
+                    <td width="55%" align="right" style="color:#475569; font-weight:bold; border-bottom: 1px solid #e2e8f0;">I.G.V. (18%):</td>
+                    <td width="45%" align="right" style="border-bottom: 1px solid #e2e8f0;">' . $monedaSymbol . ' ' . number_format($comp['igv'], 2) . '</td>
                 </tr>
                 <tr style="background-color:#f8fafc;">
-                    <td width="50%" align="right" style="color:#1e3a8a; font-weight:bold; font-size:10pt; padding-top:8px;">TOTAL PAGAR:</td>
-                    <td width="50%" align="right" style="color:#1e3a8a; font-weight:bold; font-size:10pt; padding-top:8px;">' . $monedaSymbol . ' ' . number_format($comp['total'], 2) . '</td>
-                </tr>
+                    <td width="55%" align="right" style="color:#1e3a8a; font-weight:bold; border-bottom: 1px solid #cbd5e1;">TOTAL FINAL:</td>
+                    <td width="45%" align="right" style="color:#1e3a8a; font-weight:bold; border-bottom: 1px solid #cbd5e1;">' . $monedaSymbol . ' ' . number_format($comp['total'], 2) . '</td>
+                </tr>';
+
+if ($comp['tiene_detraccion'] == 1) {
+    $html .= '
+                <tr style="background-color:#ffffff;">
+                    <td width="55%" align="right" style="color:#dc2626; font-weight:bold; border-bottom: 1px solid #cbd5e1;">(-) DETRACCIÓN ' . $tcSolesMsg . ':</td>
+                    <td width="45%" align="right" style="color:#dc2626; font-weight:bold; border-bottom: 1px solid #cbd5e1;">' . $simboloDetraccion . ' ' . number_format($montoDetraccionReal, 2) . '</td>
+                </tr>';
+}
+if ($comp['tiene_retencion'] == 1) {
+    $html .= '
+                <tr style="background-color:#ffffff;">
+                    <td width="55%" align="right" style="color:#dc2626; font-weight:bold; border-bottom: 1px solid #cbd5e1;">(-) RETENCIÓN:</td>
+                    <td width="45%" align="right" style="color:#dc2626; font-weight:bold; border-bottom: 1px solid #cbd5e1;">' . $monedaSymbol . ' ' . number_format($comp['monto_retencion'], 2) . '</td>
+                </tr>';
+}
+
+if ($comp['tiene_detraccion'] == 1 || $comp['tiene_retencion'] == 1) {
+    $neto = $comp['total'] - (float)$comp['monto_detraccion'] - (float)$comp['monto_retencion'];
+    $html .= '
+                <tr style="background-color:#f0fdf4;">
+                    <td width="55%" align="right" style="color:#166534; font-weight:bold; font-size:10pt; padding-top:8px;">NETO PAGAR:</td>
+                    <td width="45%" align="right" style="color:#166534; font-weight:bold; font-size:10pt; padding-top:8px;">' . $monedaSymbol . ' ' . number_format($neto, 2) . '</td>
+                </tr>';
+}
+
+$html .= '
             </table>
         </td>
     </tr>

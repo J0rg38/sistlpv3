@@ -99,8 +99,10 @@ try {
             comprobante_relacionado_id, 
             codigo_motivo, descripcion_motivo,
             fecha_emision, fecha_vencimiento, 
-            moneda, tipo_cambio, condicion_pago, dias_credito, subtotal, igv, total
-        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            moneda, tipo_cambio, condicion_pago, dias_credito, subtotal, igv, total,
+            tiene_detraccion, codigo_detraccion, porcentaje_detraccion, monto_detraccion,
+            tiene_retencion, porcentaje_retencion, monto_retencion
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     ");
 
     $stmtComp->execute([
@@ -123,7 +125,14 @@ try {
         ($cabecera['condicion_pago'] === 'CREDITO' && !in_array($cabecera['tipo'], ['NOTA_CREDITO', 'NOTA_DEBITO'])) ? $cabecera['dias_credito'] : 0,
         $totales['subtotal'],
         $totales['igv'],
-        $totales['total']
+        $totales['total'],
+        !empty($cabecera['tiene_detraccion']) ? 1 : 0,
+        $cabecera['codigo_detraccion'] ?? null,
+        $cabecera['porcentaje_detraccion'] ?? null,
+        $cabecera['monto_detraccion'] ?? 0,
+        !empty($cabecera['tiene_retencion']) ? 1 : 0,
+        $cabecera['porcentaje_retencion'] ?? null,
+        $cabecera['monto_retencion'] ?? 0
     ]);
 
     $comprobante_id = $pdo->lastInsertId();
