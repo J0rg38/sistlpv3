@@ -1,0 +1,257 @@
+<?php
+require_once '../../../config/db.php';
+require_once '../../../vendor/autoload.php';
+require_once '../../../includes/auth_helpers.php';
+
+$id = $_GET['id'] ?? 0;
+if (!$id) die("ID Inválido");
+
+$stmt = $pdo->prepare("SELECT * FROM comprobantes WHERE id = ?");
+$stmt->execute([$id]);
+$comp = $stmt->fetch(PDO::FETCH_ASSOC);
+
+if (!$comp) die("Comprobante no hallado");
+
+$stmtItems = $pdo->prepare("SELECT * FROM comprobantes_items WHERE comprobante_id = ?");
+$stmtItems->execute([$id]);
+$items = $stmtItems->fetchAll(PDO::FETCH_ASSOC);
+
+$config = require '../../../config/sunat.php';
+
+class FacturaPDF extends TCPDF {
+    public $headerHtml = '';
+    public function Header() {
+        $this->SetY(10);
+        $this->writeHTML($this->headerHtml, true, false, true, false, '');
+    }
+}
+
+// Crear PDF avanzado con TCPDF usando HTML
+$pdf = new FacturaPDF('P', 'mm', 'A4', true, 'UTF-8', false);
+$pdf->SetCreator('SISTLPV3');
+$pdf->SetAuthor($config['empresa']['nombre_comercial']);
+$pdf->SetTitle($comp['tipo_comprobante'] . ' ' . $comp['serie'] . '-' . $comp['correlativo']);
+$pdf->setPrintHeader(true);
+$pdf->setPrintFooter(false);
+$pdf->SetMargins(15, 48, 15);
+$pdf->SetAutoPageBreak(TRUE, 15);
+
+$numeroDocFmt = str_pad($comp['correlativo'], 8, '0', STR_PAD_LEFT);
+$tipoDocNombres = [
+    'FACTURA' => 'FACTURA ELECTRÓNICA',
+    'BOLETA' => 'BOLETA ELECTRÓNICA',
+    'NOTA_CREDITO' => 'NOTA DE CRÉDITO ELECTRÓNICA',
+    'NOTA_DEBITO' => 'NOTA DE DÉBITO ELECTRÓNICA'
+];
+$tipoDocStr = $tipoDocNombres[$comp['tipo_comprobante']] ?? strtoupper($comp['tipo_comprobante']);
+$fechaEmision = date('d/m/Y', strtotime($comp['fecha_emision']));
+$fechaVencimiento = date('d/m/Y', strtotime($comp['fecha_vencimiento']));
+
+$monedaSymbol = $comp['moneda'] === 'PEN' ? 'S/' : '$';
+$monedaLiteral = $comp['moneda'] === 'PEN' ? 'SOLES' : 'DÓLARES';
+
+$logoHTML = '';
+if (!empty($config['logo'])) {
+    $logoReal = realpath(__DIR__ . '/../../../' . $config['logo']);
+    if (file_exists($logoReal)) {
+        $logoHTML = '<img src="' . $logoReal . '" width="140" />';
+    }
+}
+
+$pdf->headerHtml = '
+<table width="100%" cellpadding="0">
+    <tr>
+        <td width="60%">
+            ' . $logoHTML . '
+            <br/>
+            <strong style="color:#1e3a8a; font-size:15pt;">' . htmlspecialchars($config['empresa']['razon_social']) . '</strong><br/>
+            <span style="font-size:8.5pt; color:#4a5568;">
+                <strong>Dirección:</strong> ' . htmlspecialchars($config['empresa']['direccion']['direccion']) . '<br/>
+                ' . htmlspecialchars($config['empresa']['direccion']['distrito']) . ' - ' . htmlspecialchars($config['empresa']['direccion']['provincia']) . ' - ' . htmlspecialchars($config['empresa']['direccion']['departamento']) . '
+            </span>
+        </td>
+        <td width="40%">
+            <table width="100%" cellpadding="6" style="border: 2px solid #2d3748; text-align:center; background-color:#f8fafc;">
+                <tr>
+                    <td>
+                        <div style="font-size:12pt; font-weight:bold; color:#1a202c;">R.U.C. ' . $config['empresa']['ruc'] . '</div>
+                        <div style="font-size:11pt; font-weight:bold; color:#1a202c;">' . $tipoDocStr . '</div>
+                        <div style="font-size:13pt; font-weight:bold; color:#dc2626;">' . $comp['serie'] . ' - ' . $numeroDocFmt . '</div>
+                    </td>
+                </tr>
+            </table>
+        </td>
+    </tr>
+</table>
+';
+
+$pdf->AddPage();
+
+$html = '
+<table width="100%" cellpadding="5" style="border: 1px solid #cbd5e1; font-size:9pt; background-color:#ffffff;">
+    <tr>
+        <td width="15%"><strong>Cliente:</strong></td>
+        <td width="55%">' . htmlspecialchars($comp['cliente_razon_social']) . '</td>
+        <td width="15%"><strong>Fecha Emisión:</strong></td>
+        <td width="15%">' . $fechaEmision . '</td>
+    </tr>
+    <tr>
+        <td width="15%"><strong>RUC/DNI:</strong></td>
+        <td width="55%">' . htmlspecialchars($comp['cliente_numero_documento']) . '</td>
+        <td width="15%"><strong>Moneda:</strong></td>
+        <td width="15%">' . $monedaLiteral . '</td>
+    </tr>
+    <tr>
+        <td width="15%"><strong>Dirección:</strong></td>
+        <td width="55%">' . htmlspecialchars($comp['cliente_direccion_completa']) . '</td>
+        <td width="15%"><strong>Cond. Pago:</strong></td>
+        <td width="15%">' . $comp['condicion_pago'] . '</td>
+    </tr>
+</table>
+<br><br>
+
+<table width="100%" cellpadding="5" style="border: 1px solid #94a3b8; font-size:8.5pt; text-align:center;">
+    <tr style="background-color:#e2e8f0; font-weight:bold; color:#1e293b;">
+        <th width="15%" style="border-right: 1px solid #94a3b8; border-bottom: 1px solid #94a3b8;">CÓDIGO</th>
+        <th width="45%" style="border-right: 1px solid #94a3b8; border-bottom: 1px solid #94a3b8;">DESCRIPCIÓN</th>
+        <th width="10%" style="border-right: 1px solid #94a3b8; border-bottom: 1px solid #94a3b8;">CANT.</th>
+        <th width="15%" style="border-right: 1px solid #94a3b8; border-bottom: 1px solid #94a3b8;">PRECIO UNIT.</th>
+        <th width="15%" style="border-bottom: 1px solid #94a3b8;">TOTAL (' . $monedaSymbol . ')</th>
+    </tr>';
+
+foreach ($items as $it) {
+    $precioConIgv = $it['precio_unitario'];
+    $html .= '
+    <tr style="color:#0f172a;">
+        <td width="15%" style="border-right: 1px solid #e2e8f0; border-bottom: 1px solid #e2e8f0;">' . htmlspecialchars($it['codigo']) . '</td>
+        <td width="45%" style="border-right: 1px solid #e2e8f0; border-bottom: 1px solid #e2e8f0; text-align:left;">' . htmlspecialchars($it['descripcion']) . '</td>
+        <td width="10%" style="border-right: 1px solid #e2e8f0; border-bottom: 1px solid #e2e8f0;">' . number_format($it['cantidad'], 2) . '<br/><span style="font-size:7pt; color:#64748b;">' . htmlspecialchars($it['unidad_medida']) . '</span></td>
+        <td width="15%" style="border-right: 1px solid #e2e8f0; border-bottom: 1px solid #e2e8f0; text-align:right;">' . number_format($precioConIgv, 4) . '</td>
+        <td width="15%" style="border-bottom: 1px solid #e2e8f0; text-align:right;">' . number_format($it['importe_total'], 2) . '</td>
+    </tr>';
+}
+
+$html .= '
+</table>
+<br><br>
+
+<table width="100%" cellpadding="5">
+    <tr>
+        <td width="65%">';
+
+if ($comp['condicion_pago'] === 'CREDITO') {
+    $html .= '
+            <table width="100%" cellpadding="5" style="border: 1px solid #cbd5e1; background-color:#f8fafc; border-radius: 5px;">
+                <tr><td colspan="3"><strong style="font-size:9pt; color:#0f172a;">DETALLE DE PAGO A CRÉDITO</strong></td></tr>
+                <tr style="font-size:8.5pt; color:#334155;">
+                    <td width="33%"><strong>Días Crédito:</strong> ' . $comp['dias_credito'] . '</td>
+                    <td width="33%"><strong>Vencimiento:</strong> ' . $fechaVencimiento . '</td>
+                    <td width="33%"><strong>Cuota:</strong> ' . $monedaSymbol . ' ' . number_format($comp['total'], 2) . '</td>
+                </tr>
+            </table><br><br>';
+}
+
+function NumerosEnLetras($monto, $moneda)
+{
+    $enteros = floor($monto);
+    $decimales = round(($monto - $enteros) * 100);
+    $textoMoneda = $moneda === 'PEN' ? 'SOLES' : 'DÓLARES AMERICANOS';
+    
+    $f = function($numero) use (&$f) {
+        $unidades = ['', 'UN', 'DOS', 'TRES', 'CUATRO', 'CINCO', 'SEIS', 'SIETE', 'OCHO', 'NUEVE', 'DIEZ', 'ONCE', 'DOCE', 'TRECE', 'CATORCE', 'QUINCE', 'DIECISEIS', 'DIECISIETE', 'DIECIOCHO', 'DIECINUEVE', 'VEINTE', 'VEINTIUN', 'VEINTIDOS', 'VEINTITRES', 'VEINTICUATRO', 'VEINTICINCO', 'VEINTISEIS', 'VEINTISIETE', 'VEINTIOCHO', 'VEINTINUEVE'];
+        $decenas = ['', '', '', 'TREINTA', 'CUARENTA', 'CINCUENTA', 'SESENTA', 'SETENTA', 'OCHENTA', 'NOVENTA'];
+        $centenas = ['', 'CIENTO', 'DOSCIENTOS', 'TRESCIENTOS', 'CUATROCIENTOS', 'QUINIENTOS', 'SEISCIENTOS', 'SETECIENTOS', 'OCHOCIENTOS', 'NOVECIENTOS'];
+
+        if ($numero == 0) return 'CERO';
+        if ($numero == 100) return 'CIEN';
+        
+        $letras = '';
+        if ($numero >= 1000) {
+            $miles = floor($numero / 1000);
+            $numero = $numero % 1000;
+            if ($miles == 1) $letras .= 'MIL ';
+            else $letras .= $f($miles) . ' MIL ';
+        }
+        if ($numero >= 100) {
+            $c = floor($numero / 100);
+            $numero = $numero % 100;
+            $letras .= $centenas[$c] . ' ';
+        }
+        if ($numero > 0) {
+            if ($numero < 30) {
+                $letras .= $unidades[$numero];
+            } else {
+                $d = floor($numero / 10);
+                $u = $numero % 10;
+                $letras .= $decenas[$d];
+                if ($u > 0) $letras .= ' Y ' . $unidades[$u];
+            }
+        }
+        return trim($letras);
+    };
+
+    return $f($enteros) . " Y " . str_pad($decimales, 2, '0', STR_PAD_LEFT) . "/100 " . $textoMoneda;
+}
+
+$html .= '
+            <div style="border: 1px solid #cbd5e1; padding: 8px; border-radius: 5px; font-size:8.5pt; background-color:#ffffff;">
+                <strong>SON: </strong> ' . strtoupper(NumerosEnLetras($comp['total'], $comp['moneda'])) . '<br><br>
+                <strong>Observaciones:</strong> Emisión de comprobante generado mediante SisTLPv3 ERP.
+            </div>
+        </td>
+        <td width="5%"></td>
+        <td width="30%">
+            <table width="100%" cellpadding="6" style="border: 1px solid #cbd5e1; font-size:9pt; background-color:#ffffff;">
+                <tr>
+                    <td width="50%" align="right" style="color:#475569; font-weight:bold; border-bottom: 1px solid #e2e8f0;">OP. GRAVADA:</td>
+                    <td width="50%" align="right" style="border-bottom: 1px solid #e2e8f0;">' . $monedaSymbol . ' ' . number_format($comp['subtotal'], 2) . '</td>
+                </tr>
+                <tr>
+                    <td width="50%" align="right" style="color:#475569; font-weight:bold; border-bottom: 1px solid #e2e8f0;">I.G.V. (18%):</td>
+                    <td width="50%" align="right" style="border-bottom: 1px solid #e2e8f0;">' . $monedaSymbol . ' ' . number_format($comp['igv'], 2) . '</td>
+                </tr>
+                <tr style="background-color:#f8fafc;">
+                    <td width="50%" align="right" style="color:#1e3a8a; font-weight:bold; font-size:10pt; padding-top:8px;">TOTAL PAGAR:</td>
+                    <td width="50%" align="right" style="color:#1e3a8a; font-weight:bold; font-size:10pt; padding-top:8px;">' . $monedaSymbol . ' ' . number_format($comp['total'], 2) . '</td>
+                </tr>
+            </table>
+        </td>
+    </tr>
+</table>
+';
+
+$pdf->writeHTML($html, true, false, true, false, '');
+
+// QR y pie al final del documento alineado al centro
+$style = array(
+    'border' => 0,
+    'padding' => 0,
+    'fgcolor' => array(0,0,0),
+    'bgcolor' => false,
+    'module_width' => 1,
+    'module_height' => 1
+);
+$qr_content = "{$config['empresa']['ruc']}|{$comp['codigo_tipo_documento']}|{$comp['serie']}|{$comp['correlativo']}|{$comp['igv']}|{$comp['total']}|{$comp['fecha_emision']}|6|{$comp['cliente_numero_documento']}|{$comp['hash_cpe']}";
+
+$pdf->Ln(8);
+$yAntes = $pdf->GetY();
+
+if ($pdf->getPageHeight() - $yAntes < 50) {
+    $pdf->AddPage();
+    $yAntes = $pdf->GetY();
+}
+
+$pdf->write2DBarcode($qr_content, 'QRCODE,H', 90, $yAntes, 30, 30, $style, 'N');
+
+$pdf->SetY($yAntes + 32);
+
+$pdf->SetFont('helvetica', 'B', 9);
+$pdf->Cell(0, 5, 'Representación Impresa de la ' . $tipoDocStr, 0, 1, 'C');
+$pdf->SetFont('helvetica', '', 8);
+$pdf->Cell(0, 5, 'Autorizado mediante resolución SUNAT.', 0, 1, 'C');
+if ($comp['hash_cpe']) {
+    $pdf->Cell(0, 5, 'Resumen Hash: ' . $comp['hash_cpe'], 0, 1, 'C');
+}
+
+$pdf->Output("{$comp['serie']}-{$comp['correlativo']}.pdf", 'I');
+?>

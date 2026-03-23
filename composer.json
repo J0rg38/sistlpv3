@@ -1,0 +1,10 @@
+{
+    "require": {
+        "greenter/greenter": "^5.2",
+        "greenter/ws": "*",
+        "greenter/data": "*",
+        "greenter/report": "*",
+        "greenter/xml": "*",
+        "tecnickcom/tcpdf": "^6.11"
+    }
+}
