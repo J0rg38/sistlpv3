@@ -94,6 +94,10 @@ require_once '../../../includes/header.php';
                                 </template>
                             </select>
                         </div>
+                        <div x-show="c.tipo === 'NOTA_CREDITO' && c.comprobante_relacionado_id" class="p-3 bg-blue-50 border border-blue-200 rounded-lg flex items-center justify-between">
+                            <span class="text-sm font-bold text-blue-800"><i class="fas fa-info-circle mr-1"></i> Saldo Máximo de Emisión (NC):</span>
+                            <span class="text-lg font-black text-blue-700" x-text="formatCurrency(c.saldo_permitido)"></span>
+                        </div>
                     </div>
                 </div>
 
@@ -136,12 +140,12 @@ require_once '../../../includes/header.php';
                     <div class="space-y-4">
                         <div>
                             <label class="block text-sm font-semibold text-gray-700 mb-1">Fecha de Emisión <span class="text-red-500">*</span></label>
-                            <input type="date" x-model="c.fecha_emision" @change="calcularVencimiento()" required class="block w-full rounded-lg border-gray-300 px-3 py-2 text-sm focus:ring-blue-500 focus:border-blue-500">
+                            <input type="date" x-model="c.fecha_emision" @change="calcularVencimiento(); fetchTipoCambio();" required class="block w-full rounded-lg border-gray-300 px-3 py-2 text-sm focus:ring-blue-500 focus:border-blue-500">
                         </div>
                         <div class="flex space-x-4">
                             <div class="w-1/2">
                                 <label class="block text-sm font-semibold text-gray-700 mb-1">Moneda <span class="text-red-500">*</span></label>
-                                <select x-model="c.moneda" :disabled="isNota() && c.comprobante_relacionado_id" class="block w-full rounded-lg border-gray-300 px-3 py-2 text-sm focus:ring-blue-500 focus:border-blue-500" :class="(isNota() && c.comprobante_relacionado_id) ? 'bg-gray-100' : ''">
+                                <select x-model="c.moneda" @change="fetchTipoCambio()" :disabled="isNota() && c.comprobante_relacionado_id" class="block w-full rounded-lg border-gray-300 px-3 py-2 text-sm focus:ring-blue-500 focus:border-blue-500" :class="(isNota() && c.comprobante_relacionado_id) ? 'bg-gray-100' : ''">
                                     <option value="PEN">Soles (S/)</option>
                                     <option value="USD">Dólares ($)</option>
                                 </select>
@@ -358,6 +362,7 @@ function emisionForm() {
             serie_id: '',
             correlativo: '',
             comprobante_relacionado_id: null,
+            saldo_permitido: null,
             codigo_motivo: '',
             descripcion_motivo: '',
             fecha_emision: '<?= date('Y-m-d') ?>',
@@ -515,9 +520,9 @@ function emisionForm() {
         },
 
         async buscarComprobanteRelacionado() {
-            if (!this.comprobanteRelacionado.serie || !this.comprobanteRelacionado.correlativo) return;
+            if (!this.comprobanteRelacionado.serie || !this.comprobanteRelacionado.correlativo || !this.c.tipo) return;
             try {
-                const res = await fetch(`api_buscar_comprobante.php?serie=${this.comprobanteRelacionado.serie.toUpperCase()}&correlativo=${this.comprobanteRelacionado.correlativo}`);
+                const res = await fetch(`api_buscar_comprobante.php?serie=${this.comprobanteRelacionado.serie.toUpperCase()}&correlativo=${this.comprobanteRelacionado.correlativo}&emitiendo=${this.c.tipo}`);
                 const data = await res.json();
                 if (data.error) {
                     this.showAlert('error', data.error);
@@ -531,7 +536,8 @@ function emisionForm() {
                     this.cliente.documento = comp.numero_documento;
                     this.cliente.nombre = comp.nombre_cliente;
                     this.cliente.direccion = comp.direccion_cliente || 'Sin dirección registrada';
-                    
+                    this.c.saldo_permitido = parseFloat(data.saldo || 0);
+
                     this.items = data.items.map(i => ({
                          codigo: i.codigo, descripcion: i.descripcion, um: i.unidad_medida, 
                          cantidad: parseFloat(i.cantidad), precio: parseFloat(i.precio_unitario), 
@@ -555,6 +561,27 @@ function emisionForm() {
             const date = new Date(this.c.fecha_emision + 'T12:00:00'); 
             date.setDate(date.getDate() + parseInt(this.c.dias_credito || 0));
             this.c.fecha_vencimiento = date.toISOString().split('T')[0];
+        },
+
+        async fetchTipoCambio() {
+            if (this.c.moneda !== 'USD') {
+                this.c.tipo_cambio = '';
+                return;
+            }
+            if (!this.c.fecha_emision) return;
+            try {
+                const res = await fetch(`api_obtener_tc.php?fecha=${this.c.fecha_emision}`);
+                const data = await res.json();
+                if (data.success && data.tc) {
+                    this.c.tipo_cambio = parseFloat(data.tc.venta).toFixed(3);
+                    this.showAlert('success', 'TC auto-completado: ' + this.c.tipo_cambio);
+                } else {
+                    this.c.tipo_cambio = '';
+                    this.showAlert('error', 'Atención: No hay Tipo de Cambio oficial registrado para la fecha ' + this.c.fecha_emision);
+                }
+            } catch (e) {
+                console.error(e);
+            }
         },
 
         addItem() {
@@ -622,6 +649,11 @@ function emisionForm() {
 
             if (this.isNota() && !this.c.codigo_motivo) {
                 this.showAlert('error', 'Debe seleccionar el motivo (catálogo SUNAT) para emitir la nota.');
+                return;
+            }
+
+            if (this.c.tipo === 'NOTA_CREDITO' && this.c.saldo_permitido !== null && parseFloat(this.totales.total) > parseFloat(this.c.saldo_permitido)) {
+                this.showAlert('error', 'Montos excedidos. El saldo de esta factura solo es: ' + this.formatCurrency(this.c.saldo_permitido));
                 return;
             }
 

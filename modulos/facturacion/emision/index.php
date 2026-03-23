@@ -9,6 +9,7 @@ $page = isset($_GET['page']) ? max(1, (int)$_GET['page']) : 1;
 $limit = 10;
 $offset = ($page - 1) * $limit;
 $search = isset($_GET['search']) ? trim($_GET['search']) : '';
+$tipo_filtro = isset($_GET['tipo_filtro']) ? trim($_GET['tipo_filtro']) : '';
 
 $where = "1=1";
 $params = [];
@@ -16,7 +17,12 @@ $params = [];
 if ($search !== '') {
     $where .= " AND (c.cliente_numero_documento LIKE ? OR c.cliente_razon_social LIKE ? OR CONCAT(c.serie, '-', c.correlativo) LIKE ?)";
     $searchParam = "%$search%";
-    $params = [$searchParam, $searchParam, $searchParam];
+    array_push($params, $searchParam, $searchParam, $searchParam);
+}
+
+if ($tipo_filtro !== '') {
+    $where .= " AND c.tipo_comprobante = ?";
+    $params[] = $tipo_filtro;
 }
 
 // Contar total
@@ -48,16 +54,26 @@ require_once '../../../includes/header.php';
     </div>
     
     <div class="flex items-center space-x-3 w-full md:w-auto">
-        <form method="GET" action="index.php" class="relative w-full md:w-64">
-            <input type="text" name="search" value="<?= htmlspecialchars($search) ?>" placeholder="Buscar comprobante..." class="block w-full pl-10 pr-3 py-2.5 border border-gray-300 rounded-lg leading-5 bg-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 sm:text-sm transition-all shadow-sm">
-            <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                <i class="fas fa-search text-gray-400"></i>
+        <form method="GET" action="index.php" class="relative w-full md:w-auto flex items-center space-x-2">
+            <div class="relative w-full md:w-56">
+                <input type="text" name="search" value="<?= htmlspecialchars($search) ?>" placeholder="Buscar comprobante..." class="block w-full pl-10 pr-3 py-2.5 border border-gray-300 rounded-lg leading-5 bg-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 sm:text-sm transition-all shadow-sm">
+                <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                    <i class="fas fa-search text-gray-400"></i>
+                </div>
+                <?php if ($search !== '' || $tipo_filtro !== ''): ?>
+                <a href="index.php" class="absolute inset-y-0 right-0 pr-3 flex items-center text-gray-400 hover:text-gray-600 transition-colors">
+                    <i class="fas fa-times-circle"></i>
+                </a>
+                <?php endif; ?>
             </div>
-            <?php if ($search !== ''): ?>
-            <a href="index.php" class="absolute inset-y-0 right-0 pr-3 flex items-center text-gray-400 hover:text-gray-600 transition-colors">
-                <i class="fas fa-times-circle"></i>
-            </a>
-            <?php endif; ?>
+            <select name="tipo_filtro" onchange="this.form.submit()" class="block w-full md:w-48 pl-3 pr-10 py-2.5 border border-gray-300 rounded-lg leading-5 bg-white focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 sm:text-sm shadow-sm">
+                <option value="">Todos los Tipos</option>
+                <option value="FACTURA" <?= $tipo_filtro==='FACTURA'?'selected':'' ?>>Facturas</option>
+                <option value="BOLETA" <?= $tipo_filtro==='BOLETA'?'selected':'' ?>>Boletas</option>
+                <option value="NOTA_CREDITO" <?= $tipo_filtro==='NOTA_CREDITO'?'selected':'' ?>>Notas de Crédito</option>
+                <option value="NOTA_DEBITO" <?= $tipo_filtro==='NOTA_DEBITO'?'selected':'' ?>>Notas de Débito</option>
+            </select>
+            <noscript><button type="submit" class="hidden">Ir</button></noscript>
         </form>
         
         <?php if (has_permission('facturacion_emision', 'crear')): ?>
@@ -119,6 +135,10 @@ require_once '../../../includes/header.php';
                                         </button>
                                     <?php endif; ?>
                                     
+                                    <button @click="abrirDetalles(<?= $c['id'] ?>)" class="text-teal-600 hover:text-teal-900 bg-teal-50 hover:bg-teal-100 px-3 py-1.5 rounded-lg transition-colors" title="Ver Detalles">
+                                        <i class="fas fa-eye"></i>
+                                    </button>
+                                    
                                     <button @click="descargarPDF(<?= $c['id'] ?>)" class="text-red-500 hover:text-red-700 bg-red-50 hover:bg-red-100 px-3 py-1.5 rounded-lg transition-colors" title="Ver PDF">
                                         <i class="fas fa-file-pdf"></i>
                                     </button>
@@ -162,7 +182,8 @@ require_once '../../../includes/header.php';
                 <nav class="relative z-0 inline-flex rounded-lg shadow-sm -space-x-px" aria-label="Pagination">
                     <?php 
                     $qs = '';
-                    if ($search !== '') $qs = '&search=' . urlencode($search);
+                    if ($search !== '') $qs .= '&search=' . urlencode($search);
+                    if ($tipo_filtro !== '') $qs .= '&tipo_filtro=' . urlencode($tipo_filtro);
                     ?>
                     <?php if ($page > 1): ?>
                     <a href="?page=<?= $page - 1 ?><?= $qs ?>" class="relative inline-flex items-center px-3 py-2 rounded-l-lg border border-gray-300 bg-white text-sm font-medium text-gray-500 hover:bg-gray-50 transition-colors">
@@ -192,11 +213,181 @@ require_once '../../../includes/header.php';
     <?php endif; ?>
 </div>
 
+<!-- Modal Detalles -->
+<div x-data="{ 
+        modalOpen: false, 
+        loading: false, 
+        data: null,
+        formatMoney(amount, cur) {
+            if (!amount && amount !== 0) return 'S/ 0.00';
+            let sy = cur === 'PEN' ? 'S/' : '$';
+            return sy + ' ' + parseFloat(amount).toFixed(2);
+        },
+        cargarDetalles(id) {
+            this.loading = true;
+            this.data = null;
+            fetch(`api_detalles.php?id=${id}`)
+                .then(res => res.json())
+                .then(d => {
+                    if(d.success) {
+                        this.data = d;
+                    } else {
+                        alert('Error cargando detalles: ' + d.error);
+                    }
+                })
+                .catch(e => {
+                    console.error(e);
+                    alert('Error de red al cargar detalles.');
+                })
+                .finally(() => {
+                    this.loading = false;
+                });
+        }
+     }" 
+     @abrir-detalle.window="modalOpen = true; cargarDetalles($event.detail);"
+     x-show="modalOpen" 
+     class="fixed inset-0 z-50 overflow-y-auto" 
+     aria-labelledby="modal-details" 
+     role="dialog" 
+     aria-modal="true" 
+     style="display: none;">
+    <div class="flex items-end justify-center min-h-screen pt-4 px-4 pb-20 text-center sm:block sm:p-0">
+        <div x-show="modalOpen" x-transition.opacity class="fixed inset-0 bg-gray-500 bg-opacity-75 transition-opacity" @click="modalOpen = false" aria-hidden="true"></div>
+        <span class="hidden sm:inline-block sm:align-middle sm:h-screen" aria-hidden="true">&#8203;</span>
+        <div x-show="modalOpen" x-transition.scale class="inline-block align-bottom bg-white rounded-2xl text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-4xl sm:w-full">
+            <div class="bg-white px-6 pt-5 pb-6">
+                <!-- Header Modal -->
+                <div class="flex justify-between items-start mb-5 pb-3 border-b border-gray-100">
+                    <div class="flex items-center">
+                        <div class="bg-blue-50 p-3 rounded-lg mr-4">
+                            <i class="fas fa-file-invoice-dollar text-xl text-blue-600"></i>
+                        </div>
+                        <div>
+                            <h3 class="text-xl font-bold text-gray-900 leading-tight">
+                                <span x-text="data ? data.cabecera.tipo_comprobante : 'Cargando...'"></span>
+                                <span x-show="data" class="text-blue-600 font-black ml-1" x-text="data ? `${data.cabecera.serie}-${data.cabecera.correlativo.toString().padStart(8,'0')}` : ''"></span>
+                            </h3>
+                            <p class="text-sm text-gray-500 font-medium" x-show="data" x-text="data ? data.cabecera.fecha_emision : ''"></p>
+                        </div>
+                    </div>
+                    <button @click="modalOpen = false" class="text-gray-400 hover:text-gray-600 bg-gray-50 hover:bg-gray-100 p-2 rounded-lg transition-colors focus:outline-none">
+                        <i class="fas fa-times text-lg"></i>
+                    </button>
+                </div>
+
+                <!-- Skeleton Loader -->
+                <div x-show="loading" class="animate-pulse space-y-4 py-4">
+                    <div class="h-4 bg-gray-200 rounded w-3/4"></div>
+                    <div class="h-4 bg-gray-200 rounded w-1/2"></div>
+                    <div class="h-32 bg-gray-100 rounded-xl mt-4"></div>
+                </div>
+
+                <!-- Content -->
+                <div x-show="!loading && data" class="space-y-6">
+                    
+                    <!-- Top metrics -->
+                    <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
+                        <div class="bg-gray-50 rounded-xl p-4 border border-gray-100">
+                            <span class="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-1">Cliente</span>
+                            <span class="block text-sm font-semibold text-gray-900 truncate" x-text="data?.cabecera.cliente_razon_social"></span>
+                            <span class="block text-xs text-gray-500 mt-0.5" x-text="data?.cabecera.cliente_numero_documento"></span>
+                        </div>
+                        <div class="bg-gray-50 rounded-xl p-4 border border-gray-100">
+                            <span class="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-1">Condición</span>
+                            <span class="block text-sm font-semibold text-gray-900" x-text="data?.cabecera.condicion_pago"></span>
+                        </div>
+                        <div class="bg-gray-50 rounded-xl p-4 border border-gray-100">
+                            <span class="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-1">Total Inicial</span>
+                            <span class="block text-lg font-black text-gray-900" x-text="data ? formatMoney(data.cabecera.total, data.cabecera.moneda) : ''"></span>
+                        </div>
+                        <!-- Saldo Actual (solo si es Factura/Boleta) -->
+                        <div x-show="data && ['FACTURA', 'BOLETA'].includes(data.cabecera.tipo_comprobante)" class="bg-blue-50 rounded-xl p-4 border border-blue-100">
+                            <span class="block text-xs font-bold text-blue-600 uppercase tracking-wider mb-1">Saldo Actualizado</span>
+                            <span class="block text-2xl font-black text-blue-700 leading-none" x-text="data?.saldo !== undefined ? formatMoney(data.saldo, data.cabecera.moneda) : ''"></span>
+                        </div>
+                    </div>
+
+                    <!-- Items Grid -->
+                    <div>
+                        <h4 class="text-xs font-bold text-gray-500 uppercase tracking-wider mb-3">Detalle de Ítems</h4>
+                        <div class="border border-gray-200 rounded-xl overflow-hidden">
+                            <table class="min-w-full divide-y divide-gray-200 text-sm">
+                                <thead class="bg-gray-50">
+                                    <tr>
+                                        <th class="px-4 py-2.5 text-left font-semibold text-gray-700">Cant.</th>
+                                        <th class="px-4 py-2.5 text-left font-semibold text-gray-700">Descripción</th>
+                                        <th class="px-4 py-2.5 text-right font-semibold text-gray-700">P. Unit.</th>
+                                        <th class="px-4 py-2.5 text-right font-semibold text-gray-700">Total</th>
+                                    </tr>
+                                </thead>
+                                <tbody class="bg-white divide-y divide-gray-100">
+                                    <template x-for="it in data?.items" :key="it.id">
+                                        <tr class="hover:bg-gray-50 transition-colors">
+                                            <td class="px-4 py-3 text-gray-900 font-medium" x-text="parseFloat(it.cantidad).toFixed(2)"></td>
+                                            <td class="px-4 py-3 text-gray-600" x-text="it.descripcion"></td>
+                                            <td class="px-4 py-3 text-gray-600 text-right" x-text="it.precio_unitario"></td>
+                                            <td class="px-4 py-3 text-gray-900 font-bold text-right py-2 bg-yellow-50/30" x-text="it.importe_total"></td>
+                                        </tr>
+                                    </template>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+
+                    <!-- Notas Aplicadas / Relacionadas -->
+                    <div x-show="data && data.notas && data.notas.length > 0" class="mt-8">
+                        <h4 class="text-xs font-bold text-purple-600 uppercase tracking-wider mb-3 flex items-center">
+                            <i class="fas fa-link mr-2"></i> Notas Relacionadas Emitidas
+                        </h4>
+                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                            <template x-for="n in data?.notas" :key="n.id">
+                                <div class="flex items-center justify-between p-3 rounded-xl border border-gray-200 bg-white hover:border-purple-300 transition-colors">
+                                    <div class="flex items-center">
+                                        <div class="w-2 h-full rounded-full mr-3" :class="n.tipo_comprobante === 'NOTA_CREDITO' ? 'bg-red-400' : 'bg-green-400'">&nbsp;</div>
+                                        <div>
+                                            <span class="block text-xs font-bold text-gray-500" x-text="n.tipo_comprobante"></span>
+                                            <span class="block text-sm font-black text-gray-900" x-text="`${n.serie}-${n.correlativo.toString().padStart(8,'0')}`"></span>
+                                        </div>
+                                    </div>
+                                    <div class="text-right">
+                                        <span class="block text-xs text-gray-500 font-medium" x-text="n.estado_sunat"></span>
+                                        <span class="block text-sm font-bold" :class="n.tipo_comprobante === 'NOTA_CREDITO' ? 'text-red-600' : 'text-green-600'" x-text="(n.tipo_comprobante === 'NOTA_CREDITO' ? '- ' : '+ ') + formatMoney(n.total, n.moneda)"></span>
+                                    </div>
+                                </div>
+                            </template>
+                        </div>
+                    </div>
+
+                    <!-- Documento Padre (Si esto es una nota) -->
+                    <div x-show="data && data.padre" class="mt-8 bg-purple-50 rounded-xl p-4 border border-purple-200 flex items-center justify-between">
+                        <div>
+                            <span class="block text-xs font-bold text-purple-600 uppercase tracking-wider mb-1"><i class="fas fa-level-up-alt mr-1"></i> Documento Afectado (Padre)</span>
+                            <span class="block text-lg font-black text-gray-900" x-text="data?.padre ? `${data.padre.tipo_comprobante} ${data.padre.serie}-${data.padre.correlativo.toString().padStart(8,'0')}` : ''"></span>
+                        </div>
+                        <div class="text-right">
+                            <span class="block text-2xl font-black text-purple-700" x-text="data?.padre ? formatMoney(data.padre.total, data.padre.moneda) : ''"></span>
+                        </div>
+                    </div>
+
+                </div>
+            </div>
+            <div class="bg-gray-50 px-6 py-4 flex justify-end rounded-b-2xl border-t border-gray-100">
+                <button type="button" @click="modalOpen = false" class="px-6 py-2 bg-white border border-gray-300 rounded-lg text-sm font-bold text-gray-700 hover:bg-gray-100 transition-colors focus:outline-none">
+                    Cerrar Detalle
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
 <div id="toast-container" class="fixed bottom-5 right-5 z-50 flex flex-col gap-2"></div>
 
 <script>
 document.addEventListener('alpine:init', () => {
     Alpine.data('comprobantesList', () => ({
+        abrirDetalles(id) {
+            this.$dispatch('abrir-detalle', id);
+        },
         enviarSunat(id) {
             this.showToast('Enviando comprobante a SUNAT...', 'info');
             fetch('api_sunat_enviar.php', {

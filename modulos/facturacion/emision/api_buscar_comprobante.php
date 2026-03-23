@@ -34,6 +34,24 @@ try {
         exit;
     }
 
+    $tipo_emision = $_GET['emitiendo'] ?? '';
+
+    // Calcular el Saldo Dinámico
+    $stmtNc = $pdo->prepare("SELECT COALESCE(SUM(total), 0) FROM comprobantes WHERE comprobante_relacionado_id = ? AND tipo_comprobante = 'NOTA_CREDITO' AND estado_sunat IN ('ACEPTADO', 'PENDIENTE')");
+    $stmtNc->execute([$comprobante['id']]);
+    $total_nc = (float)$stmtNc->fetchColumn();
+
+    $stmtNd = $pdo->prepare("SELECT COALESCE(SUM(total), 0) FROM comprobantes WHERE comprobante_relacionado_id = ? AND tipo_comprobante = 'NOTA_DEBITO' AND estado_sunat IN ('ACEPTADO', 'PENDIENTE')");
+    $stmtNd->execute([$comprobante['id']]);
+    $total_nd = (float)$stmtNd->fetchColumn();
+
+    $saldo = (float)$comprobante['total'] - $total_nc + $total_nd;
+
+    if ($tipo_emision === 'NOTA_CREDITO' && $saldo <= 0) {
+        echo json_encode(['error' => 'Este comprobante tiene un saldo de 0.00, no admite más Notas de Crédito.']);
+        exit;
+    }
+
     // Buscar los ítems
     $stmtItems = $pdo->prepare("
         SELECT * FROM comprobantes_items 
@@ -44,7 +62,8 @@ try {
 
     echo json_encode([
         'comprobante' => $comprobante,
-        'items' => $items
+        'items' => $items,
+        'saldo' => $saldo
     ]);
 
 } catch (PDOException $e) {

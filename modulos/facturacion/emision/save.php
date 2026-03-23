@@ -70,6 +70,27 @@ try {
     elseif ($cabecera['tipo'] === 'NOTA_CREDITO') $codigo_doc = '07';
     elseif ($cabecera['tipo'] === 'NOTA_DEBITO') $codigo_doc = '08';
 
+    // Anti-fraud: Final validation limit for Nota Credito
+    if ($cabecera['tipo'] === 'NOTA_CREDITO' && !empty($cabecera['comprobante_relacionado_id'])) {
+        $stmtS = $pdo->prepare("SELECT total FROM comprobantes WHERE id = ?");
+        $stmtS->execute([$cabecera['comprobante_relacionado_id']]);
+        $parentTotal = (float)$stmtS->fetchColumn();
+
+        $stmtNc = $pdo->prepare("SELECT COALESCE(SUM(total), 0) FROM comprobantes WHERE comprobante_relacionado_id = ? AND tipo_comprobante = 'NOTA_CREDITO' AND estado_sunat IN ('ACEPTADO', 'PENDIENTE')");
+        $stmtNc->execute([$cabecera['comprobante_relacionado_id']]);
+        $totNc = (float)$stmtNc->fetchColumn();
+
+        $stmtNd = $pdo->prepare("SELECT COALESCE(SUM(total), 0) FROM comprobantes WHERE comprobante_relacionado_id = ? AND tipo_comprobante = 'NOTA_DEBITO' AND estado_sunat IN ('ACEPTADO', 'PENDIENTE')");
+        $stmtNd->execute([$cabecera['comprobante_relacionado_id']]);
+        $totNd = (float)$stmtNd->fetchColumn();
+
+        $saldoReal = $parentTotal - $totNc + $totNd;
+
+        if ((float)$totales['total'] > $saldoReal) {
+            throw new Exception("El monto de la Nota de Crédito excéde matemáticamente el saldo restante del comprobante (Queda: S/ " . number_format($saldoReal, 2) . ").");
+        }
+    }
+
     // 2. Insert into comprobantes
     $stmtComp = $pdo->prepare("
         INSERT INTO comprobantes (
