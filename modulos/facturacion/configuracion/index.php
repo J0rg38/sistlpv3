@@ -1,7 +1,7 @@
 <?php
 require_once '../../../config/db.php';
 require_once '../../../includes/auth_helpers.php';
-require_permission('facturacion_emision', 'ver'); // Ojo, ideal crear permiso de admin
+require_permission('facturacion_configuracion', 'ver');
 
 $stmt = $pdo->query("SELECT * FROM empresa_config WHERE id = 1");
 $config = $stmt->fetch(PDO::FETCH_ASSOC);

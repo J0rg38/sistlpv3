@@ -176,6 +176,16 @@ require_once '../../../includes/header.php';
                         </div>
                     </div>
                 </div>
+
+                <!-- Observaciones -->
+                <div class="bg-white p-6 rounded-2xl border border-gray-200 shadow-sm">
+                    <h3 class="text-lg font-bold text-gray-800 mb-4 border-b pb-2">Observaciones</h3>
+                    <div class="space-y-4">
+                        <div>
+                            <textarea type="text" x-model="c.observaciones" class="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:ring-blue-500 focus:border-blue-500"></textarea>
+                        </div>
+                    </div>
+                </div>
             </div> <!-- Ciere de Right Column -->
 
             <!-- Detracción y Retención (Logicamente a ancho completo) -->
@@ -479,6 +489,7 @@ function emisionForm() {
             descripcion_motivo: '',
             fecha_emision: '<?= date('Y-m-d') ?>',
             fecha_vencimiento: '<?= date('Y-m-d') ?>',
+            observaciones: '',
             moneda: 'PEN',
             tipo_cambio: '',
             condicion_pago: 'CONTADO',

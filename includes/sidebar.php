@@ -54,7 +54,7 @@ $base = isset($base_url) ? $base_url : '';
                 Comprobantes
             </a>
             <?php endif; ?>
-            <?php if(has_permission('facturacion_emision', 'ver')): ?>
+            <?php if(has_permission('facturacion_configuracion', 'ver')): ?>
             <a href="<?= $base ?>modulos/facturacion/configuracion/index.php" class="<?= isActive($current_page, $current_dir, 'index.php', 'configuracion') ? 'bg-blue-50 text-blue-700 font-semibold' : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900 font-medium' ?> flex items-center px-4 py-3 rounded-xl transition-all shadow-sm group">
                 <i class="fas fa-cogs w-5 h-5 mr-3 <?= isActive($current_page, $current_dir, 'index.php', 'configuracion') ? 'text-blue-600' : 'text-gray-400 group-hover:text-blue-500' ?> flex items-center justify-center transition-colors"></i>
                 Configuración
@@ -135,7 +135,7 @@ $base = isset($base_url) ? $base_url : '';
                 <i class="fas fa-file-invoice-dollar w-5 h-5 mr-3 <?= isActive($current_page, $current_dir, 'index.php', 'emision') ? 'text-blue-600' : 'text-gray-400' ?> flex items-center justify-center"></i> Comprobantes
             </a>
             <?php endif; ?>
-            <?php if(has_permission('facturacion_emision', 'ver')): ?>
+            <?php if(has_permission('facturacion_configuracion', 'ver')): ?>
             <a href="<?= $base ?>modulos/facturacion/configuracion/index.php" class="<?= isActive($current_page, $current_dir, 'index.php', 'configuracion') ? 'bg-blue-50 text-blue-700' : 'text-gray-600 hover:bg-gray-50' ?> flex items-center px-4 py-3 rounded-xl font-medium">
                 <i class="fas fa-cogs w-5 h-5 mr-3 <?= isActive($current_page, $current_dir, 'index.php', 'configuracion') ? 'text-blue-600' : 'text-gray-400' ?> flex items-center justify-center"></i> Configuración
             </a>

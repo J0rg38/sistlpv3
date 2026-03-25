@@ -8,7 +8,7 @@ if (!isset($_SESSION['user_id'])) {
     exit;
 }
 
-require_permission('facturacion_emision', 'crear');
+require_permission('facturacion_configuracion', 'editar');
 
 try {
     $stmt = $pdo->prepare("SELECT * FROM empresa_config WHERE id = 1");

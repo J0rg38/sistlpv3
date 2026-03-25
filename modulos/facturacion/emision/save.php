@@ -98,11 +98,11 @@ try {
             cliente_id, cliente_numero_documento, cliente_razon_social, cliente_direccion_completa,
             comprobante_relacionado_id, 
             codigo_motivo, descripcion_motivo,
-            fecha_emision, fecha_vencimiento, 
+            fecha_emision, fecha_vencimiento, observaciones,
             moneda, tipo_cambio, condicion_pago, dias_credito, subtotal, igv, total,
             tiene_detraccion, codigo_detraccion, porcentaje_detraccion, monto_detraccion,
             tiene_retencion, porcentaje_retencion, monto_retencion
-        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     ");
 
     $stmtComp->execute([
@@ -119,6 +119,7 @@ try {
         $cabecera['descripcion_motivo'] ?? null,
         $cabecera['fecha_emision'],
         empty($cabecera['fecha_vencimiento']) ? null : $cabecera['fecha_vencimiento'],
+        $cabecera['observaciones'] ?? null,
         $cabecera['moneda'],
         $cabecera['moneda'] === 'USD' ? ($cabecera['tipo_cambio'] ?: null) : null,
         in_array($cabecera['tipo'], ['NOTA_CREDITO', 'NOTA_DEBITO']) ? 'CONTADO' : $cabecera['condicion_pago'],

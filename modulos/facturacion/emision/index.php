@@ -190,24 +190,58 @@ require_once '../../../includes/header.php';
                         <span class="sr-only">Anterior</span>
                         <i class="fas fa-chevron-left text-xs"></i>
                     </a>
+                    <?php else: ?>
+                    <span class="relative inline-flex items-center px-3 py-2 rounded-l-lg border border-gray-200 bg-gray-50 text-sm font-medium text-gray-300 cursor-not-allowed">
+                        <span class="sr-only">Anterior</span>
+                        <i class="fas fa-chevron-left text-xs"></i>
+                    </span>
                     <?php endif; ?>
+                    
                     <?php 
                     $start_page = max(1, $page - 2);
                     $end_page = min($total_pages, $page + 2);
+                    
+                    if ($start_page > 1) {
+                        echo '<span class="relative inline-flex items-center px-3 py-2 border border-gray-300 bg-white text-sm font-medium text-gray-500">...</span>';
+                    }
+                    
                     for ($i = $start_page; $i <= $end_page; $i++): 
                     ?>
-                        <a href="?page=<?= $i ?><?= $qs ?>" class="relative inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium transition-colors <?= $i == $page ? 'z-10 bg-blue-50 border-blue-500 text-blue-700 font-bold' : 'bg-white text-gray-700 hover:bg-gray-50' ?>">
+                        <a href="?page=<?= $i ?><?= $qs ?>" aria-current="page" class="relative inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium transition-colors <?= $i == $page ? 'z-10 bg-blue-50 border-blue-500 text-blue-700 font-bold' : 'bg-white text-gray-700 hover:bg-gray-50' ?>">
                             <?= $i ?>
                         </a>
                     <?php endfor; ?>
+                    
+                    <?php 
+                    if ($end_page < $total_pages) {
+                        echo '<span class="relative inline-flex items-center px-3 py-2 border border-gray-300 bg-white text-sm font-medium text-gray-500">...</span>';
+                    }
+                    ?>
+
                     <?php if ($page < $total_pages): ?>
                     <a href="?page=<?= $page + 1 ?><?= $qs ?>" class="relative inline-flex items-center px-3 py-2 rounded-r-lg border border-gray-300 bg-white text-sm font-medium text-gray-500 hover:bg-gray-50 transition-colors">
                         <span class="sr-only">Siguiente</span>
                         <i class="fas fa-chevron-right text-xs"></i>
                     </a>
+                    <?php else: ?>
+                    <span class="relative inline-flex items-center px-3 py-2 rounded-r-lg border border-gray-200 bg-gray-50 text-sm font-medium text-gray-300 cursor-not-allowed">
+                        <span class="sr-only">Siguiente</span>
+                        <i class="fas fa-chevron-right text-xs"></i>
+                    </span>
                     <?php endif; ?>
                 </nav>
             </div>
+        </div>
+        
+        <!-- Paginación Mobile -->
+        <div class="flex items-center justify-between w-full sm:hidden">
+            <a href="<?= $page > 1 ? '?page='.($page-1).$qs : '#' ?>" class="relative inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 transition-colors mt-2 <?= $page <= 1 ? 'opacity-50 cursor-not-allowed pointer-events-none' : '' ?>">
+                Anterior
+            </a>
+            <span class="text-sm text-gray-700 mt-2 font-medium">Pág <?= $page ?> de <?= $total_pages ?></span>
+            <a href="<?= $page < $total_pages ? '?page='.($page+1).$qs : '#' ?>" class="relative inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 transition-colors mt-2 <?= $page >= $total_pages ? 'opacity-50 cursor-not-allowed pointer-events-none' : '' ?>">
+                Siguiente
+            </a>
         </div>
     </div>
     <?php endif; ?>
@@ -304,6 +338,14 @@ require_once '../../../includes/header.php';
                         <div x-show="data && ['FACTURA', 'BOLETA'].includes(data.cabecera.tipo_comprobante)" class="bg-blue-50 rounded-xl p-4 border border-blue-100">
                             <span class="block text-xs font-bold text-blue-600 uppercase tracking-wider mb-1">Saldo Actualizado</span>
                             <span class="block text-2xl font-black text-blue-700 leading-none" x-text="data?.saldo !== undefined ? formatMoney(data.saldo, data.cabecera.moneda) : ''"></span>
+                        </div>
+                    </div>
+
+                    <!-- Observaciones -->
+                    <div x-show="data && data.cabecera.observaciones" class="grid grid-cols-1 md:grid-cols-1 gap-4">
+                        <div class="bg-gray-50 rounded-xl p-4 border border-gray-100">
+                            <span class="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-1">Observaciones</span>
+                            <span class="block text-sm font-semibold text-gray-900 truncate" x-text="data?.cabecera.observaciones"></span>
                         </div>
                     </div>
 
