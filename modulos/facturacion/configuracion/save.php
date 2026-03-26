@@ -57,7 +57,7 @@ try {
         ruc = ?, razon_social = ?, nombre_comercial = ?, direccion = ?, 
         ubigeo = ?, departamento = ?, provincia = ?, distrito = ?, 
         sol_usuario = ?, sol_clave = ?, 
-        certificado_path = ?, logo_path = ?, cuenta_banco_nacion = ? 
+        certificado_path = ?, certificado_clave = ?, logo_path = ?, cuenta_banco_nacion = ?, estado_facturacion = ? 
         WHERE id = 1");
         
     $stmtUpd->execute([
@@ -72,8 +72,10 @@ try {
         $_POST['sol_usuario'] ?? $config['sol_usuario'],
         $_POST['sol_clave'] ?? $config['sol_clave'],
         $certificado_path,
+        $_POST['certificado_clave'] ?? $config['certificado_clave'],
         $logo_path,
-        $_POST['cuenta_banco_nacion'] ?? $config['cuenta_banco_nacion']
+        $_POST['cuenta_banco_nacion'] ?? $config['cuenta_banco_nacion'],
+        isset($_POST['estado_facturacion']) ? 1 : 0
     ]);
 
     echo json_encode(['success' => true]);

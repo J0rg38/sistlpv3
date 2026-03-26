@@ -9,6 +9,8 @@ try {
     $row = null;
 }
 
+$endpoint = \Greenter\Ws\Services\SunatEndpoints::FE_BETA;
+
 if (!$row) {
     // Retorno seguro inicial
     $row = [
@@ -23,8 +25,13 @@ if (!$row) {
         'sol_usuario' => 'FACTUR44',
         'sol_clave' => 'Transportes2',
         'certificado_path' => 'data/certs/sunat_cert.pfx',
+        'certificado_clave' => '',
         'logo_path' => ''
     ];
+} else {
+    if($row['estado_facturacion'] == 1){
+        $endpoint = \Greenter\Ws\Services\SunatEndpoints::FE_PRODUCCION;
+    }else{}
 }
 
 return [
@@ -42,10 +49,11 @@ return [
         ]
     ],
     'greenter' => [
-        'endpoint' => \Greenter\Ws\Services\SunatEndpoints::FE_BETA,
+        'endpoint' => $endpoint,
         'user' => $row['sol_usuario'],
         'password' => $row['sol_clave'],
-        'cert_path' => __DIR__ . '/../' . $row['certificado_path']
+        'cert_path' => __DIR__ . '/../' . $row['certificado_path'],
+        'cert_clave' => $row['certificado_clave']
     ],
     'logo' => $row['logo_path']
 ];

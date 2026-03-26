@@ -88,7 +88,7 @@ try {
     $config = require '../../../config/sunat.php';
 
     $pfx = file_get_contents($config['greenter']['cert_path']);
-    $password = 'Cisne202100'; //clave de certificado pfx
+    $password = $config['greenter']['cert_clave']; //clave de certificado pfx
     $certificate = new X509Certificate($pfx, $password);
 
     $see = new See();
