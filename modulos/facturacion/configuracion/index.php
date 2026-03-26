@@ -100,9 +100,9 @@ ob_start();
                     </div>
 
                     <div class="mt-4 p-4 border border-blue-100 bg-blue-50 rounded-lg">
-                        <label class="block text-sm font-medium text-blue-900">Actualizar Certificado Digital (.pem, .crt, .p12)</label>
+                        <label class="block text-sm font-medium text-blue-900">Actualizar Certificado Digital (.pem, .crt, .p12, .pfx)</label>
                         <p class="text-xs text-blue-700 mb-2">Actualmente cargado: <strong><?= basename($config['certificado_path']) ?></strong></p>
-                        <input type="file" name="certificado" accept=".pem,.crt,.p12"
+                        <input type="file" name="certificado" accept=".pem,.crt,.p12,.pfx"
                                class="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-sm file:font-semibold file:bg-blue-600 file:text-white hover:file:bg-blue-700">
                     </div>
 

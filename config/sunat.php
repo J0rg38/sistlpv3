@@ -12,17 +12,17 @@ try {
 if (!$row) {
     // Retorno seguro inicial
     $row = [
-        'ruc' => '20000000001',
-        'razon_social' => 'EMPRESA POR DEFECTO S.A.C.',
-        'nombre_comercial' => 'EMPRESA POR DEFECTO',
-        'direccion' => 'AV. DESCONOCIDA',
-        'ubigeo' => '150101',
-        'departamento' => 'LIMA',
-        'provincia' => 'LIMA',
-        'distrito' => 'LIMA',
-        'sol_usuario' => 'MODDATOS',
-        'sol_clave' => 'moddatos',
-        'certificado_path' => 'data/certs/certificate.pem',
+        'ruc' => '20603850174',
+        'razon_social' => 'TRANSPORTES TOMAS LINARES S.A.C.',
+        'nombre_comercial' => 'TRANSPORTES TOMAS LINARES S.A.C.',
+        'direccion' => 'CAL. JACINTO IBAÑEZ 490 LT. 01 MZ. E URB. PARQUE INDUSTRIAL',
+        'ubigeo' => '040101',
+        'departamento' => 'AREQUIPA',
+        'provincia' => 'AREQUIPA',
+        'distrito' => 'AREQUIPA',
+        'sol_usuario' => 'FACTUR44',
+        'sol_clave' => 'Transportes2',
+        'certificado_path' => 'data/certs/sunat_cert.pfx',
         'logo_path' => ''
     ];
 }

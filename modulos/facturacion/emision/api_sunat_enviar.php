@@ -17,6 +17,8 @@ use Greenter\Model\Sale\FormaPagos\FormaPagoCredito;
 use Greenter\Model\Sale\Cuota;
 use Greenter\Ws\Services\SunatEndpoints;
 use Greenter\See;
+use Greenter\XMLSecLibs\Certificate\X509Certificate;
+use Greenter\XMLSecLibs\Certificate\X509ContentType;
 
 $data = json_decode(file_get_contents('php://input'), true);
 $id = $data['id'] ?? 0;
@@ -85,8 +87,12 @@ try {
     // 2. Configurar Greenter (Ver)
     $config = require '../../../config/sunat.php';
 
+    $pfx = file_get_contents($config['greenter']['cert_path']);
+    $password = 'Cisne202100'; //clave de certificado pfx
+    $certificate = new X509Certificate($pfx, $password);
+
     $see = new See();
-    $see->setCertificate(file_get_contents($config['greenter']['cert_path']));
+    $see->setCertificate($certificate->export(X509ContentType::PEM));
     $see->setService($config['greenter']['endpoint']);
     $see->setClaveSOL($config['empresa']['ruc'], $config['greenter']['user'], $config['greenter']['password']);
 

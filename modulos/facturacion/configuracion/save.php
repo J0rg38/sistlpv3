@@ -24,7 +24,7 @@ try {
         $name = basename($_FILES['certificado']['name']);
         // Sanitizar y obligar extension segura
         $ext = strtolower(pathinfo($name, PATHINFO_EXTENSION));
-        if (in_array($ext, ['pem', 'crt', 'p12'])) {
+        if (in_array($ext, ['pem', 'crt', 'p12', 'pfx'])) {
             $destPath = '../../../data/certs/sunat_cert.' . $ext;
             if (move_uploaded_file($tmpName, $destPath)) {
                 $certificado_path = 'data/certs/sunat_cert.' . $ext;
