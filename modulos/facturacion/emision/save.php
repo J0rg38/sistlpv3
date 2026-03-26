@@ -101,8 +101,8 @@ try {
             fecha_emision, fecha_vencimiento, observaciones,
             moneda, tipo_cambio, condicion_pago, dias_credito, subtotal, igv, total,
             tiene_detraccion, codigo_detraccion, porcentaje_detraccion, monto_detraccion,
-            tiene_retencion, porcentaje_retencion, monto_retencion
-        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            tiene_retencion, porcentaje_retencion, monto_retencion, usuario
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     ");
 
     $stmtComp->execute([
@@ -133,7 +133,8 @@ try {
         $cabecera['monto_detraccion'] ?? 0,
         !empty($cabecera['tiene_retencion']) ? 1 : 0,
         $cabecera['porcentaje_retencion'] ?? null,
-        $cabecera['monto_retencion'] ?? 0
+        $cabecera['monto_retencion'] ?? 0,
+        $cabecera['usuario'] ?? 'ADMINISTRADOR'
     ]);
 
     $comprobante_id = $pdo->lastInsertId();

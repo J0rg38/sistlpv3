@@ -366,26 +366,28 @@ require_once '../../../includes/header.php';
                     <div>
                         <h4 class="text-xs font-bold text-gray-500 uppercase tracking-wider mb-3">Detalle de Ítems</h4>
                         <div class="border border-gray-200 rounded-xl overflow-hidden">
-                            <table class="min-w-full divide-y divide-gray-200 text-sm">
-                                <thead class="bg-gray-50">
-                                    <tr>
-                                        <th class="px-4 py-2.5 text-left font-semibold text-gray-700">Cant.</th>
-                                        <th class="px-4 py-2.5 text-left font-semibold text-gray-700">Descripción</th>
-                                        <th class="px-4 py-2.5 text-right font-semibold text-gray-700">P. Unit.</th>
-                                        <th class="px-4 py-2.5 text-right font-semibold text-gray-700">Total</th>
-                                    </tr>
-                                </thead>
-                                <tbody class="bg-white divide-y divide-gray-100">
-                                    <template x-for="it in data?.items" :key="it.id">
-                                        <tr class="hover:bg-gray-50 transition-colors">
-                                            <td class="px-4 py-3 text-gray-900 font-medium" x-text="parseFloat(it.cantidad).toFixed(2)"></td>
-                                            <td class="px-4 py-3 text-gray-600" x-text="it.descripcion"></td>
-                                            <td class="px-4 py-3 text-gray-600 text-right" x-text="it.precio_unitario"></td>
-                                            <td class="px-4 py-3 text-gray-900 font-bold text-right py-2 bg-yellow-50/30" x-text="it.importe_total"></td>
+                            <div class="overflow-x-auto">
+                                <table class="min-w-full divide-y divide-gray-200 text-sm">
+                                    <thead class="bg-gray-50">
+                                        <tr>
+                                            <th class="px-4 py-2.5 text-left font-semibold text-gray-700">Descripción</th>
+                                            <th class="px-4 py-2.5 text-left font-semibold text-gray-700">Cant.</th>
+                                            <th class="px-4 py-2.5 text-right font-semibold text-gray-700">P. Unit.</th>
+                                            <th class="px-4 py-2.5 text-right font-semibold text-gray-700">Total</th>
                                         </tr>
-                                    </template>
-                                </tbody>
-                            </table>
+                                    </thead>
+                                    <tbody class="bg-white divide-y divide-gray-100">
+                                        <template x-for="it in data?.items" :key="it.id">
+                                            <tr class="hover:bg-gray-50 transition-colors">
+                                                <td class="px-4 py-3 text-gray-600" x-text="it.descripcion"></td>
+                                                <td class="px-4 py-3 text-gray-900 font-medium" x-text="parseFloat(it.cantidad).toFixed(2)"></td>
+                                                <td class="px-4 py-3 text-gray-600 text-right" nowrap x-text="formatMoney(it.precio_unitario, data.cabecera.moneda)"></td>
+                                                <td class="px-4 py-3 text-gray-900 font-bold text-right py-2 bg-yellow-50/30" nowrap x-text="formatMoney(it.importe_total, data.cabecera.moneda)"></td>
+                                            </tr>
+                                        </template>
+                                    </tbody>
+                                </table>
+                            </div>
                         </div>
                     </div>
 
@@ -423,6 +425,8 @@ require_once '../../../includes/header.php';
                             <span class="block text-2xl font-black text-purple-700" x-text="data?.padre ? formatMoney(data.padre.total, data.padre.moneda) : ''"></span>
                         </div>
                     </div>
+
+                    <p class="text-sm text-gray-900 font-small" x-show="data" x-text="data ? `*Comprobante emitido por ${data.cabecera.usuario}` : ''"></p>
 
                 </div>
             </div>

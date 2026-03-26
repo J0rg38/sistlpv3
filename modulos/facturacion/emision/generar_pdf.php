@@ -112,12 +112,12 @@ $html = '
 
 <table width="100%" cellpadding="5" style="border-collapse: collapse; font-size:8.5pt; text-align:center; border: 0.5pt solid #2d3748;">
     <tr style="background-color:#ffffff; font-weight:bold; color:#1e293b;">
-        <th width="15%" style="border: 0.5pt solid #2d3748;">CÓDIGO</th>
-        <th width="39%" style="border: 0.5pt solid #2d3748;">DESCRIPCIÓN</th>
-        <th width="6%" style="border: 0.5pt solid #2d3748;">U.M.</th>
+        <th width="10%" style="border: 0.5pt solid #2d3748;">CÓDIGO</th>
+        <th width="46%" style="border: 0.5pt solid #2d3748;">DESCRIPCIÓN</th>
+        <th width="10%" style="border: 0.5pt solid #2d3748;">U.M.</th>
         <th width="10%" style="border: 0.5pt solid #2d3748;">CANT.</th>
-        <th width="15%" style="border: 0.5pt solid #2d3748;">PRECIO UNIT.</th>
-        <th width="15%" style="border: 0.5pt solid #2d3748;">TOTAL (' . $monedaSymbol . ')</th>
+        <th width="12%" style="border: 0.5pt solid #2d3748;">PRECIO UNIT.</th>
+        <th width="12%" style="border: 0.5pt solid #2d3748;">TOTAL (' . $monedaSymbol . ')</th>
     </tr>';
 
 $totalDescuentosPdf = 0;
@@ -128,12 +128,12 @@ foreach ($items as $it) {
     
     $html .= '
         <tr style="color:#0f172a;">
-            <td width="15%" style="border: 0.5pt solid #2d3748; font-size:8px">' . htmlspecialchars($it['codigo']) . '</td>
-            <td width="39%" style="border: 0.5pt solid #2d3748; text-align:left; font-size:8px">' . htmlspecialchars($it['descripcion']) . '</td>
-            <td width="6%" style="border: 0.5pt solid #2d3748; text-align:center; font-size:8px">' . htmlspecialchars($it['unidad_medida']) . '</td>
+            <td width="10%" style="border: 0.5pt solid #2d3748; font-size:8px">' . htmlspecialchars($it['codigo']) . '</td>
+            <td width="46%" style="border: 0.5pt solid #2d3748; text-align:left; font-size:8px">' . htmlspecialchars($it['descripcion']) . '</td>
+            <td width="10%" style="border: 0.5pt solid #2d3748; text-align:center; font-size:8px">' . htmlspecialchars($it['unidad_medida']) . '</td>
             <td width="10%" style="border: 0.5pt solid #2d3748; font-size:8px">' . number_format($it['cantidad'], 2) . '</td>
-            <td width="15%" style="border: 0.5pt solid #2d3748; text-align:right; font-size:8px">' . number_format($precioConIgv, 4) . '</td>
-            <td width="15%" style="border: 0.5pt solid #2d3748; text-align:right; font-size:8px">' . number_format($montoLineBruto, 2) . '</td>
+            <td width="12%" style="border: 0.5pt solid #2d3748; text-align:right; font-size:8px">' . number_format($precioConIgv, 2) . '</td>
+            <td width="12%" style="border: 0.5pt solid #2d3748; text-align:right; font-size:8px">' . number_format($montoLineBruto, 2) . '</td>
         </tr>';
 }
 
@@ -177,7 +177,7 @@ if ($comp['tiene_detraccion'] == 1) {
 }
 
 if ($comp['tiene_retencion'] == 1) {
-    $html .= '<table width="100%" cellpadding="5" style="border: 1px solid #8F0D13; background-color:#fef2f2;">
+    $html .= '<br><table width="100%" cellpadding="5" style="border: 1px solid #8F0D13; background-color:#fef2f2;">
                 <tr><td><strong style="font-size:9pt; color:#991b1b;">OPERACIÓN SUJETA A RETENCIÓN DEL I.G.V. (3%)</strong></td></tr>
                 <tr style="font-size:8.5pt; color:#b91c1c;">
                     <td>El comprobante está sujeto a retención. Monto retenido: <strong>' . $monedaSymbol . ' ' . number_format($comp['monto_retencion'], 2) . '</strong></td>

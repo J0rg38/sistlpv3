@@ -11,6 +11,7 @@ if (!isset($_SESSION['user_id'])) {
     exit;
 }
 
+$usuario_id = htmlspecialchars($_SESSION['user_id']);
 $nombreCompleto = htmlspecialchars($_SESSION['user_nombre'] . ' ' . $_SESSION['user_apellidos']);
 $rol = htmlspecialchars($_SESSION['user_rol']);
 $iniciales = strtoupper(substr($_SESSION['user_nombre'], 0, 1) . substr($_SESSION['user_apellidos'], 0, 1));

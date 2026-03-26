@@ -500,7 +500,8 @@ function emisionForm() {
             monto_detraccion: 0.00,
             tiene_retencion: false,
             porcentaje_retencion: 3.00,
-            monto_retencion: 0.00
+            monto_retencion: 0.00,
+            usuario: "<?= $nombreCompleto ?>"
         },
         items: [
             { codigo: '', descripcion: '', um: 'NIU', cantidad: 1, precio: 0.00, descuento: 0.00, total: 0.00 }
