@@ -98,6 +98,21 @@ endif; ?>
             </a>
             <?php
 endif; ?>
+
+            <div class="px-4 mt-6 mb-2">
+                <p class="text-xs font-bold text-gray-400 uppercase tracking-wider">Reportes Contables</p>
+            </div>
+            <!-- Idealmente crear sub-permisos como reportes_ventas -->
+            <?php if (has_permission('reportes_contabilidad', 'ver')): ?>
+            <a href="<?= $base?>modulos/reportes/ventas/index.php"
+                class="<?= isActive($current_page, $current_dir, 'index.php', 'ventas') ? 'bg-blue-50 text-blue-700 font-semibold' : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900 font-medium'?> flex items-center px-4 py-3 rounded-xl transition-all shadow-sm group">
+                <i
+                    class="fas fa-chart-bar w-5 h-5 mr-3 <?= isActive($current_page, $current_dir, 'index.php', 'ventas') ? 'text-blue-600' : 'text-gray-400 group-hover:text-blue-500'?> flex items-center justify-center transition-colors"></i>
+                Registro de Ventas
+            </a>
+            <?php
+endif; ?>
+
         </nav>
     </div>
 
@@ -207,6 +222,18 @@ endif; ?>
                 <i
                     class="fas fa-list-ol w-5 h-5 mr-3 <?= isActive($current_page, $current_dir, 'index.php', 'series') ? 'text-blue-600' : 'text-gray-400'?> flex items-center justify-center"></i>
                 Series
+            </a>
+            <?php
+endif; ?>
+            <div class="px-4 mt-6 mb-2">
+                <p class="text-xs font-bold text-gray-400 uppercase tracking-wider">Reportes Contables</p>
+            </div>
+            <?php if (has_permission('reportes_contabilidad', 'ver')): ?>
+            <a href="<?= $base?>modulos/reportes/ventas/index.php"
+                class="<?= isActive($current_page, $current_dir, 'index.php', 'ventas') ? 'bg-blue-50 text-blue-700' : 'text-gray-600 hover:bg-gray-50'?> flex items-center px-4 py-3 rounded-xl font-medium">
+                <i
+                    class="fas fa-chart-bar w-5 h-5 mr-3 <?= isActive($current_page, $current_dir, 'index.php', 'ventas') ? 'text-blue-600' : 'text-gray-400'?> flex items-center justify-center"></i>
+                Registro de Ventas
             </a>
             <?php
 endif; ?>

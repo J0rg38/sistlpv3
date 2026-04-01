@@ -27,7 +27,7 @@ function has_permission($modulo, $accion) {
 /**
  * Enforce permission. If not permitted, redirect.
  */
-function require_permission($modulo, $accion, $redirect_to = '../../dashboard.php') {
+function require_permission($modulo, $accion, $redirect_to = '../../../dashboard.php') {
     if (!has_permission($modulo, $accion)) {
         $_SESSION['error'] = "No tienes permisos para realizar esta acción ($modulo / $accion).";
         header("Location: " . $redirect_to);
