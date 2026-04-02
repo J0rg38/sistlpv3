@@ -2,7 +2,7 @@
 $base = isset($base_url) ? $base_url : '';
 ?>
 <!-- Topbar -->
-<header class="h-16 shrink-0 bg-white shadow-sm border-b border-gray-200 flex items-center justify-between px-4 sm:px-6 lg:px-8 z-[100] relative w-full">
+<header class="h-16 shrink-0 bg-white shadow-sm border-b border-gray-200 flex items-center justify-between px-4 sm:px-6 lg:px-8 z-40 relative w-full">
     <!-- Mobile menu button -->
     <button @click="sidebarOpen = true" class="text-gray-500 hover:text-gray-700 focus:outline-none md:hidden p-2 -ml-2 rounded-md hover:bg-gray-100 transition-colors">
         <i class="fas fa-bars text-xl"></i>

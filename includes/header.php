@@ -47,5 +47,19 @@ $iniciales = strtoupper(substr($_SESSION['user_nombre'], 0, 1) . substr($_SESSIO
             <?php include __DIR__ . '/topbar.php'; ?>
             
             <!-- Main Content Area -->
-            <main class="flex-1 overflow-y-auto focus:outline-none">
+            <main class="flex-1 overflow-y-auto focus:outline-none relative">
+                <!-- Content Loader -->
+                <div id="glb-loader" class="absolute inset-0 z-50 bg-[#F8FAFC] flex flex-col items-start pt-32 sm:pt-40 items-center transition-opacity duration-300">
+                    <i class="fas fa-circle-notch fa-spin text-5xl text-blue-600 mb-4"></i>
+                    <p class="text-sm font-semibold text-gray-500 animate-pulse">Cargando datos...</p>
+                </div>
+                <script>
+                    window.addEventListener('load', function() {
+                        const loader = document.getElementById('glb-loader');
+                        if(loader) {
+                            loader.style.opacity = '0';
+                            setTimeout(() => loader.style.display = 'none', 300);
+                        }
+                    });
+                </script>
                 <div class="py-6 px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto">

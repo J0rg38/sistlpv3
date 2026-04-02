@@ -12,9 +12,12 @@ $anio = $_GET['anio'] ?? date('Y');
 // Obtener comprobantes
 // Filtramos solo aceptados y pendientes o anulados
 $stmt = $pdo->prepare("
-    SELECT c.*, cli.numero_documento as cli_doc, cli.tipo_documento as cli_tipo_doc, cli.razon_social as cli_rs, cli.nombres as cli_nom, cli.apellidos as cli_ape
+    SELECT c.id, c.fecha_emision, c.fecha_vencimiento, c.tipo_comprobante, c.serie, c.correlativo, c.subtotal, c.igv, c.total, c.moneda, c.tipo_cambio, c.estado_sunat, c.cliente_id,
+           cli.numero_documento as cli_doc, cli.tipo_documento as cli_tipo_doc, cli.razon_social as cli_rs, cli.nombres as cli_nom, cli.apellidos as cli_ape,
+           padre.fecha_emision as padre_fecha, padre.tipo_comprobante as padre_tipo, padre.serie as padre_serie, padre.correlativo as padre_correlativo
     FROM comprobantes c
     LEFT JOIN clientes cli ON c.cliente_id = cli.id
+    LEFT JOIN comprobantes padre ON c.comprobante_relacionado_id = padre.id
     WHERE MONTH(c.fecha_emision) = ? AND YEAR(c.fecha_emision) = ?
     AND c.estado_sunat IN ('ACEPTADO', 'ANULADO')
     ORDER BY c.fecha_emision ASC, c.serie ASC, c.correlativo ASC
@@ -50,10 +53,28 @@ $html .= '<th>INAFECTO</th>';
 $html .= '<th>ICBPER</th>';
 $html .= '<th>IMPORTE TOTAL</th>';
 $html .= '<th>ESTADO</th>';
+$html .= '<th>DOC. REF TIPO</th>';
+$html .= '<th>DOC. REF SERIE</th>';
+$html .= '<th>DOC. REF NÚMERO</th>';
 $html .= '</tr>';
 $html .= '</thead><tbody>';
 
+$comprobantesPrincipales = [];
+$comprobantesNotas = [];
 foreach ($comprobantes as $c) {
+    if (in_array($c['tipo_comprobante'], ['NOTA_CREDITO', 'NOTA_DEBITO'])) {
+        $comprobantesNotas[] = $c;
+    } else {
+        $comprobantesPrincipales[] = $c;
+    }
+}
+$comprobantesOrdenados = array_merge($comprobantesPrincipales, $comprobantesNotas);
+
+$sumBase = 0;
+$sumIgv = 0;
+$sumTotal = 0;
+
+foreach ($comprobantesOrdenados as $c) {
     if ($c['estado_sunat'] === 'ANULADO') {
         $base = $igv = $total = $exo = $ina = $icbper = 0.00;
     } else {
@@ -82,6 +103,19 @@ foreach ($comprobantes as $c) {
 
     $nom = $c['cli_tipo_doc'] === 'RUC' ? $c['cli_rs'] : trim($c['cli_nom'] . ' ' . $c['cli_ape']);
 
+    $refTipo = ''; $refSerie = ''; $refNum = '';
+    if (in_array($c['tipo_comprobante'], ['NOTA_CREDITO', 'NOTA_DEBITO']) && !empty($c['padre_serie'])) {
+        $pt = '01';
+        if ($c['padre_tipo'] === 'BOLETA') $pt = '03';
+        $refTipo = $pt;
+        $refSerie = $c['padre_serie'];
+        $refNum = $c['padre_correlativo'];
+    }
+
+    $sumBase += $base;
+    $sumIgv += $igv;
+    $sumTotal += $total;
+
     $html .= '<tr>';
     $html .= '<td>' . $c['fecha_emision'] . '</td>';
     $html .= '<td>' . ($c['fecha_vencimiento'] ?: '-') . '</td>';
@@ -100,8 +134,22 @@ foreach ($comprobantes as $c) {
     $html .= '<td>' . number_format($icbper, 2, '.', '') . '</td>';
     $html .= '<td>' . number_format($total, 2, '.', '') . '</td>';
     $html .= '<td>' . $c['estado_sunat'] . '</td>';
+    $html .= '<td>' . $refTipo . '</td>';
+    $html .= '<td>' . $refSerie . '</td>';
+    $html .= '<td>' . $refNum . '</td>';
     $html .= '</tr>';
 }
+
+$html .= '<tr style="font-weight:bold; background-color:#e5e7eb;">';
+$html .= '<td colspan="10" style="text-align:right;">TOTALES CONSOLIDADOS DEL MES:</td>';
+$html .= '<td>' . number_format($sumBase, 2, '.', '') . '</td>';
+$html .= '<td>' . number_format($sumIgv, 2, '.', '') . '</td>';
+$html .= '<td>0.00</td>';
+$html .= '<td>0.00</td>';
+$html .= '<td>0.00</td>';
+$html .= '<td>' . number_format($sumTotal, 2, '.', '') . '</td>';
+$html .= '<td colspan="4"></td>';
+$html .= '</tr>';
 
 $html .= '</tbody></table></body></html>';
 echo $html;

@@ -10,7 +10,7 @@ if (isset($_SESSION['user_id'])) {
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Login - SistLP v3</title>
+    <title>Login - SisTLP v3</title>
     <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
@@ -35,7 +35,7 @@ if (isset($_SESSION['user_id'])) {
 
     <div class="glass rounded-2xl shadow-[0_8px_32px_0_rgba(0,0,0,0.3)] w-full max-w-md p-8 sm:p-10 relative z-10 transition-all duration-300 hover:shadow-[0_8px_40px_0_rgba(0,0,0,0.4)]">
         <div class="text-center mb-10">
-            <h1 class="text-4xl font-extrabold text-gray-900 tracking-tight mb-2">SistLP <span class="text-blue-600">v3</span></h1>
+            <img src="data/img/logo_factura.png" alt="Logo" class="h-15 mr-3">
             <p class="text-gray-600 font-medium">Gestión Empresarial</p>
         </div>
 
@@ -73,7 +73,7 @@ if (isset($_SESSION['user_id'])) {
                     <label for="remember-me" class="ml-2 block text-sm text-gray-600 cursor-pointer">Recordarme</label>
                 </div>
                 <div class="text-sm">
-                    <a href="#" class="font-medium text-blue-600 hover:text-blue-500 transition-colors">¿Olvidaste tu contraseña?</a>
+                    <a href="olvide_password.php" class="font-medium text-blue-600 hover:text-blue-500 transition-colors">¿Olvidaste tu contraseña?</a>
                 </div>
             </div>
 

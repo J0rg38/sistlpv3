@@ -48,6 +48,7 @@ class ComposerStaticInit97cc7c81c6885573b402c024872e113a
             'Psr\\Http\\Message\\' => 17,
             'Psr\\Http\\Client\\' => 16,
             'PhpZip\\' => 7,
+            'PHPMailer\\PHPMailer\\' => 20,
         ),
         'G' => 
         array (
@@ -129,6 +130,10 @@ class ComposerStaticInit97cc7c81c6885573b402c024872e113a
         'PhpZip\\' => 
         array (
             0 => __DIR__ . '/..' . '/nelexa/zip/src',
+        ),
+        'PHPMailer\\PHPMailer\\' => 
+        array (
+            0 => __DIR__ . '/..' . '/phpmailer/phpmailer/src',
         ),
         'GuzzleHttp\\Psr7\\' => 
         array (

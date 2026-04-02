@@ -5,6 +5,7 @@
         "greenter/data": "*",
         "greenter/report": "*",
         "greenter/xml": "*",
-        "tecnickcom/tcpdf": "^6.11"
+        "tecnickcom/tcpdf": "^6.11",
+        "phpmailer/phpmailer": "^7.0"
     }
 }
