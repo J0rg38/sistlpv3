@@ -128,12 +128,12 @@ try {
         $totales['igv'],
         $totales['total'],
         !empty($cabecera['tiene_detraccion']) ? 1 : 0,
-        $cabecera['codigo_detraccion'] ?? null,
-        $cabecera['porcentaje_detraccion'] ?? null,
-        $cabecera['monto_detraccion'] ?? 0,
+        !empty($cabecera['tiene_detraccion']) ? ($cabecera['codigo_detraccion'] ?? null) : null,
+        !empty($cabecera['tiene_detraccion']) ? ($cabecera['porcentaje_detraccion'] ?? null) : null,
+        !empty($cabecera['tiene_detraccion']) ? ($cabecera['monto_detraccion'] ?? null) : null,
         !empty($cabecera['tiene_retencion']) ? 1 : 0,
-        $cabecera['porcentaje_retencion'] ?? null,
-        $cabecera['monto_retencion'] ?? 0,
+        !empty($cabecera['tiene_retencion']) ? ($cabecera['porcentaje_retencion'] ?? null) : null,
+        !empty($cabecera['tiene_retencion']) ? ($cabecera['monto_retencion'] ?? null) : null,
         $cabecera['usuario'] ?? 'ADMINISTRADOR'
     ]);
 

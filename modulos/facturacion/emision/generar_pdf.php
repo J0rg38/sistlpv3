@@ -84,7 +84,35 @@ $pdf->headerHtml = '
 </table>
 ';
 
+// Buscar documento padre (Ref de NC/ND)
+$padreStr = '';
+$padreDetalle = null;
+if (!empty($comp['comprobante_relacionado_id'])) {
+    $stmtP = $pdo->prepare("SELECT serie, correlativo, fecha_emision, total FROM comprobantes WHERE id = ?");
+    $stmtP->execute([$comp['comprobante_relacionado_id']]);
+    $padre = $stmtP->fetch(PDO::FETCH_ASSOC);
+    if ($padre) {
+        $padreStr = $padre['serie'] . '-' . str_pad($padre['correlativo'], 8, '0', STR_PAD_LEFT);
+        $padreDetalle = $padre;
+    }
+}
+
 $pdf->AddPage();
+
+if (strtoupper($comp['estado_sunat']) === 'RECHAZADO') {
+    $oldY = $pdf->GetY();
+    $pdf->SetAlpha(0.15);
+    $pdf->SetFont('helvetica', 'B', 80);
+    $pdf->SetTextColor(220, 38, 38);
+    $pdf->StartTransform();
+    $pdf->Rotate(45, 105, 148);
+    $pdf->Text(25, 140, 'RECHAZADO');
+    $pdf->StopTransform();
+    $pdf->SetAlpha(1);
+    $pdf->SetTextColor(0, 0, 0);
+    $pdf->SetFont('helvetica', '', 9);
+    $pdf->SetY($oldY);
+}
 
 $html = '
 <br><br>
@@ -150,6 +178,21 @@ if ($comp['condicion_pago'] === 'CREDITO') {
                     <td width="33%"><strong>Días Crédito:</strong> ' . $comp['dias_credito'] . '</td>
                     <td width="33%"><strong>Vencimiento:</strong> ' . $fechaVencimiento . '</td>
                     <td width="34%"><strong>Cuota:</strong> ' . $monedaSymbol . ' ' . number_format($comp['total'], 2) . '</td>
+                </tr>
+            </table><br>';
+}
+
+if ($padreDetalle) {
+    $fechaPadre = date('d/m/Y', strtotime($padreDetalle['fecha_emision']));
+    $html .= '<table width="100%" cellpadding="5" style="border-collapse: collapse; border: 1.5px solid #1e293b; background-color:#f8fafc;">
+                <tr><td colspan="3"><strong style="font-size:9pt; color:#1e293b;">DOCUMENTO AFECTADO (COMPROBANTE ORIGEN)</strong></td></tr>
+                <tr style="font-size:8.5pt; color:#334155;">
+                    <td width="33%"><strong>Relacionado:</strong><br><span style="color:#dc2626; font-weight:bold;">' . $padreStr . '</span></td>
+                    <td width="33%"><strong>Fecha de Emisión:</strong><br>' . $fechaPadre . '</td>
+                    <td width="34%"><strong>Total Facturado:</strong><br>' . $monedaSymbol . ' ' . number_format($padreDetalle['total'], 2) . '</td>
+                </tr>
+                <tr style="font-size:8.5pt; color:#334155;">
+                    <td colspan="3"><strong>Motivo del Cambio:</strong> ' . htmlspecialchars($comp['descripcion_motivo'] ?? 'MODIFICACIÓN') . '</td>
                 </tr>
             </table><br>';
 }
